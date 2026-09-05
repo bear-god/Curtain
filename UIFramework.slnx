@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="UIFramework/UIFramework.csproj" />
+  <Project Path="UIFramework.Tests/UIFramework.Tests.csproj" />
+</Solution>
