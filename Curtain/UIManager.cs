@@ -50,8 +50,7 @@ public sealed class UIManager
     /// <typeparam name="TView">View 类型。</typeparam>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>页面句柄。</returns>
-    public async UniTask<UIHandle> OpenMainAsync<TView>(
-        CancellationToken cancellationToken = default)
+    public async UniTask<UIHandle> OpenMainAsync<TView>(CancellationToken cancellationToken = default)
         where TView : IView
     {
         // 关闭旧 Main 页面
@@ -235,7 +234,14 @@ public sealed class UIManager
     {
         var id = _nextId++;
         var handle = new UIHandle(id, () => CloseById(id));
-        await OpenInternalAsync<TView>(layer, -1, handle, cancellationToken, _ => { });
+        await OpenInternalAsync<TView>(
+            layer,
+            -1,
+            handle,
+            cancellationToken,
+            _ =>
+            {
+            });
 
         if (layer == UILayer.Main)
         {
@@ -253,7 +259,15 @@ public sealed class UIManager
     {
         var id = _nextId++;
         var handle = new UIHandle(id, () => CloseById(id));
-        await OpenInternalAsync<TView, TParam>(parameter, layer, -1, handle, cancellationToken, _ => { });
+        await OpenInternalAsync<TView, TParam>(
+            parameter,
+            layer,
+            -1,
+            handle,
+            cancellationToken,
+            _ =>
+            {
+            });
 
         if (layer == UILayer.Main)
         {
@@ -288,11 +302,16 @@ public sealed class UIManager
         Action<TView> configureView)
         where TView : IView, IViewWithParameter<TParam>
     {
-        return await OpenInternalCoreAsync<TView>(layer, parentId, handle, cancellationToken, view =>
-        {
-            view.SetParameter(parameter);
-            configureView(view);
-        });
+        return await OpenInternalCoreAsync<TView>(
+            layer,
+            parentId,
+            handle,
+            cancellationToken,
+            view =>
+            {
+                view.SetParameter(parameter);
+                configureView(view);
+            });
     }
 
     private async UniTask<Entry> OpenInternalCoreAsync<TView>(

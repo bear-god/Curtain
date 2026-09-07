@@ -14,7 +14,11 @@ public class UIHandleTests
     [Test]
     public void Complete_SetsCompletedResult()
     {
-        var handle = new UIHandle<int>(1, () => { });
+        var handle = new UIHandle<int>(
+            1,
+            () =>
+            {
+            });
         handle.Complete(42);
 
         var result = handle.GetResult().GetAwaiter().GetResult();
@@ -26,7 +30,11 @@ public class UIHandleTests
     [Test]
     public void Dismiss_SetsCancelledResult()
     {
-        var handle = new UIHandle<int>(1, () => { });
+        var handle = new UIHandle<int>(
+            1,
+            () =>
+            {
+            });
         handle.Dismiss();
 
         var result = handle.GetResult().GetAwaiter().GetResult();
@@ -37,7 +45,11 @@ public class UIHandleTests
     [Test]
     public void Complete_Twice_FirstWins()
     {
-        var handle = new UIHandle<int>(1, () => { });
+        var handle = new UIHandle<int>(
+            1,
+            () =>
+            {
+            });
         handle.Complete(1);
         handle.Complete(2);
 
@@ -48,7 +60,11 @@ public class UIHandleTests
     [Test]
     public void Dismiss_ThenComplete_KeepsCancelled()
     {
-        var handle = new UIHandle<int>(1, () => { });
+        var handle = new UIHandle<int>(
+            1,
+            () =>
+            {
+            });
         handle.Dismiss();
         handle.Complete(42);
 
