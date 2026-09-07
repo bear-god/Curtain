@@ -10,6 +10,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Curtain.Abstraction;
 using Curtain.Core;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// UI 管理器，负责 UI 的打开、关闭、层级管理。
@@ -136,7 +138,7 @@ public sealed class UIManager
 
         parentEntry.ChildIds.Add(id);
 
-        _logger.Info("Dialog opened: {ViewType} (Parent: {ParentId})", typeof(TView).Name, parent.Id);
+        _logger.LogInformation("Dialog opened: {ViewType} (Parent: {ParentId})", typeof(TView).Name, parent.Id);
         return dialogHandle;
     }
 
@@ -167,7 +169,7 @@ public sealed class UIManager
 
         parentEntry.ChildIds.Add(id);
 
-        _logger.Info("Dialog opened: {ViewType} (Parent: {ParentId})", typeof(TView).Name, parent.Id);
+        _logger.LogInformation("Dialog opened: {ViewType} (Parent: {ParentId})", typeof(TView).Name, parent.Id);
         return dialogHandle;
     }
 
@@ -216,7 +218,7 @@ public sealed class UIManager
         where TEffect : IUIEffect
     {
         // TODO: 特效系统实现（对象池 + DOTween）
-        _logger.Debug("PlayEffect: {EffectType}", typeof(TEffect).Name);
+        _logger.LogDebug("PlayEffect: {EffectType}", typeof(TEffect).Name);
     }
 
     private static void ValidatePageLayer(UILayer layer)
@@ -323,7 +325,7 @@ public sealed class UIManager
         where TView : IView
     {
         var viewType = typeof(TView);
-        _logger.Debug("Opening UI: {ViewType} (Layer: {Layer})", viewType.Name, layer);
+        _logger.LogDebug("Opening UI: {ViewType} (Layer: {Layer})", viewType.Name, layer);
 
         try
         {
@@ -336,7 +338,7 @@ public sealed class UIManager
 
             // 2. 加载 Prefab 并取得 View（契约：返回未激活的视图）
             var layerRoot = _root.GetLayerRoot(layer);
-            _logger.Debug("Loading Prefab: {PrefabPath}", attr.PrefabPath);
+            _logger.LogDebug("Loading Prefab: {PrefabPath}", attr.PrefabPath);
             var view = await _loader.InstantiateAsync<TView>(attr.PrefabPath, layerRoot, cancellationToken);
             if (view == null)
             {
@@ -376,7 +378,7 @@ public sealed class UIManager
 
             typeIds.Add(id);
 
-            _logger.Info("UI opened: {ViewType} (Id: {Id}, Layer: {Layer})", viewType.Name, id, layer);
+            _logger.LogInformation("UI opened: {ViewType} (Id: {Id}, Layer: {Layer})", viewType.Name, id, layer);
             return entry;
         }
         catch (Exception ex) when (ex is not UIOpenException)
@@ -449,7 +451,7 @@ public sealed class UIManager
             _currentMainId = -1;
         }
 
-        _logger.Info("UI closed: {ViewType} (Id: {Id})", viewType.Name, id);
+        _logger.LogInformation("UI closed: {ViewType} (Id: {Id})", viewType.Name, id);
     }
 
     private async UniTask CloseInternalAsync(int id)
@@ -501,7 +503,7 @@ public sealed class UIManager
             _currentMainId = -1;
         }
 
-        _logger.Info("UI closed: {ViewType} (Id: {Id})", viewType.Name, id);
+        _logger.LogInformation("UI closed: {ViewType} (Id: {Id})", viewType.Name, id);
     }
 
     private sealed class Entry
