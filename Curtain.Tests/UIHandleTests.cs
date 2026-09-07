@@ -1,7 +1,7 @@
-﻿using NUnit.Framework;
-using UIFramework.Core;
+﻿namespace Curtain.Tests;
 
-namespace UIFramework.Tests;
+using NUnit.Framework;
+using Curtain.Core;
 
 /// <summary>
 /// <see cref="UIHandle{TResult}"/> 对话框结果语义测试：Complete / Dismiss 的幂等性与句柄有效性。

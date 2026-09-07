@@ -2,7 +2,7 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
-namespace UIFramework.Core;
+namespace Curtain.Core;
 
 /// <summary>
 /// 对话框的返回结果。

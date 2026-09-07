@@ -2,10 +2,10 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
+namespace Curtain.Core;
+
 using System;
 using Cysharp.Threading.Tasks;
-
-namespace UIFramework.Core;
 
 /// <summary>
 /// UI 句柄，调用 <see cref="Dispose"/> 关闭该 UI。
@@ -85,7 +85,7 @@ public sealed class UIHandle<TResult> : UIHandle
         return _tcs.Task;
     }
 
-    /// <summary>对话框正常完成，设置返回值（由 ViewModel 调用）。</summary>
+    /// <summary>对话框正常完成，设置返回值（由 View 调用）。</summary>
     /// <param name="result">返回值。</param>
     public void Complete(TResult result)
     {

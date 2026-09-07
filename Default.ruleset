@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="DBB Strict Rules" Description="疯狂挖掘兔项目严格代码风格规则" ToolsVersion="10.0">
+  <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
+
+    <!-- ============================================================ -->
+    <!-- SA1000-SA1099  排版规则（空格）                                -->
+    <!-- ============================================================ -->
+    <Rule Id="SA1000" Action="None" />  <!-- 关键字后必须有空格 -->
+    <Rule Id="SA1001" Action="Error" />  <!-- 逗号后必须有空格 -->
+    <Rule Id="SA1002" Action="Error" />  <!-- 分号后必须有空格 -->
+    <Rule Id="SA1003" Action="Error" />  <!-- 操作符两侧必须有空格 -->
+    <Rule Id="SA1004" Action="Error" />  <!-- 文档注释行必须以空格开头 -->
+    <Rule Id="SA1005" Action="Error" />  <!-- 单行注释 // 后必须有空格 -->
+    <Rule Id="SA1006" Action="Error" />  <!-- 预处理关键字前禁止空格 -->
+    <Rule Id="SA1008" Action="Error" />  <!-- 左括号前必须有空格 -->
+    <Rule Id="SA1009" Action="Error" />  <!-- 右括号后必须有空格 -->
+    <Rule Id="SA1010" Action="Error" />  <!-- 左括号后禁止空格 -->
+    <Rule Id="SA1011" Action="Error" />  <!-- 右括号前禁止空格 -->
+    <Rule Id="SA1012" Action="Error" />  <!-- 左花括号后必须有空格 -->
+    <Rule Id="SA1013" Action="Error" />  <!-- 右花括号前必须有空格 -->
+    <Rule Id="SA1014" Action="Error" />  <!-- 泛型左尖括号前禁止空格 -->
+    <Rule Id="SA1015" Action="Error" />  <!-- 泛型右尖括号后禁止空格 -->
+    <Rule Id="SA1016" Action="Error" />  <!-- 属性左括号前禁止空格 -->
+    <Rule Id="SA1017" Action="Error" />  <!-- 属性右括号后禁止空格 -->
+    <Rule Id="SA1018" Action="Error" />  <!-- 可空类型符号 ? 前禁止空格 -->
+    <Rule Id="SA1019" Action="Error" />  <!-- 成员访问操作符两侧禁止空格 -->
+    <Rule Id="SA1020" Action="Error" />  <!-- 递增/递减操作符与操作数间禁止空格 -->
+    <Rule Id="SA1021" Action="Error" />  <!-- 负号与操作数间禁止空格 -->
+    <Rule Id="SA1022" Action="Error" />  <!-- 正号与操作数间禁止空格 -->
+    <Rule Id="SA1023" Action="Error" />  <!-- 取反操作符后禁止空格 -->
+    <Rule Id="SA1024" Action="Error" />  <!-- 冒号后必须有空格 -->
+    <Rule Id="SA1025" Action="Error" />  <!-- 代码中禁止连续多个空格 -->
+    <Rule Id="SA1026" Action="Error" />  <!-- 隐式类型数组 new 后禁止空格 -->
+    <Rule Id="SA1027" Action="Error" />  <!-- 禁止使用 Tab（强制空格缩进） -->
+    <Rule Id="SA1028" Action="Error" />  <!-- 行尾禁止空白字符 -->
+
+    <!-- ============================================================ -->
+    <!-- SA1100-SA1199  代码布局规则                                    -->
+    <!-- ============================================================ -->
+    <Rule Id="SA1100" Action="Error" />  <!-- 禁止使用 base. 除非有本地实现 -->
+    <Rule Id="SA1101" Action="None" />  <!-- 本地调用必须使用 this. 前缀 -->
+    <Rule Id="SA1106" Action="Error" />  <!-- 代码禁止包含空语句 -->
+    <Rule Id="SA1107" Action="Error" />  <!-- 代码禁止多于一个语句在同一行 -->
+    <Rule Id="SA1108" Action="Error" />  <!-- 块语句禁止包含嵌入注释 -->
+    <Rule Id="SA1110" Action="Error" />  <!-- 左括号必须与声明在同一行 -->
+    <Rule Id="SA1111" Action="Error" />  <!-- 右括号必须与最后一个参数在同一行 -->
+    <Rule Id="SA1112" Action="Error" />  <!-- 右括号必须与左括号在同一行 -->
+    <Rule Id="SA1113" Action="Error" />  <!-- 逗号必须与上一标记在同一行 -->
+    <Rule Id="SA1114" Action="Error" />  <!-- 参数列表必须跟随声明 -->
+    <Rule Id="SA1115" Action="Error" />  <!-- 参数必须跟随逗号 -->
+    <Rule Id="SA1116" Action="Error" />  <!-- 分隔符必须与上一参数在同一行 -->
+    <Rule Id="SA1117" Action="Error" />  <!-- 参数必须统一在同一行或各自独占一行 -->
+    <Rule Id="SA1118" Action="None" />  <!-- 参数禁止跨多行 -->
+    <Rule Id="SA1119" Action="Error" />  <!-- 语句禁止包含不必要的括号 -->
+    <Rule Id="SA1120" Action="Error" />  <!-- 注释必须包含文本 -->
+    <Rule Id="SA1121" Action="Error" />  <!-- 必须使用内置类型别名（如 string 而非 String） -->
+    <Rule Id="SA1122" Action="Error" />  <!-- 必须使用 string.Empty 替代 "" -->
+    <Rule Id="SA1123" Action="Error" />  <!-- region 禁止位于代码元素内部 -->
+    <Rule Id="SA1124" Action="Error" />  <!-- region 禁止位于代码元素内部 -->
+    <Rule Id="SA1125" Action="Error" />  <!-- 必须使用 ? 简写可空类型 -->
+    <Rule Id="SA1127" Action="Error" />  <!-- 泛型类型约束必须独占一行 -->
+    <Rule Id="SA1128" Action="Error" />  <!-- 构造函数初始化器必须独占一行 -->
+    <Rule Id="SA1129" Action="Error" />  <!-- 禁止使用 new 创建值类型实例 -->
+    <Rule Id="SA1130" Action="Error" />  <!-- 使用 lambda 替代匿名方法 -->
+    <Rule Id="SA1131" Action="Error" />  <!-- 常量值必须在比较表达式右侧 -->
+    <Rule Id="SA1132" Action="Error" />  <!-- 字段必须分行声明，禁止合并 -->
+    <Rule Id="SA1133" Action="Error" />  <!-- 特性必须分行声明，禁止合并 -->
+    <Rule Id="SA1134" Action="Error" />  <!-- 每个特性必须独占一行 -->
+    <Rule Id="SA1135" Action="Error" />  <!-- using 指令必须使用完全限定命名空间 -->
+    <Rule Id="SA1136" Action="Error" />  <!-- 枚举值必须每行一个 -->
+    <Rule Id="SA1137" Action="Error" />  <!-- 同级元素缩进必须一致 -->
+    <Rule Id="SA1139" Action="Error" />  <!-- 必须使用字面量后缀（如 1f）而非强制转换 -->
+
+    <!-- ============================================================ -->
+    <!-- SA1200-SA1299  组织规则（using、命名空间、成员顺序）            -->
+    <!-- ============================================================ -->
+    <Rule Id="SA1200" Action="Error" />  <!-- using 指令必须放在命名空间外 -->
+    <Rule Id="SA1201" Action="Error" />  <!-- 元素必须按正确顺序排列 -->
+    <Rule Id="SA1202" Action="Error" />  <!-- 元素必须按访问修饰符排序 -->
+    <Rule Id="SA1203" Action="Error" />  <!-- 常量必须在非常量字段之前 -->
+    <Rule Id="SA1204" Action="Error" />  <!-- 静态成员必须在实例成员之前 -->
+    <Rule Id="SA1205" Action="Error" />  <!-- 部分类必须声明访问修饰符 -->
+    <Rule Id="SA1206" Action="Error" />  <!-- 声明关键字必须按顺序排列 -->
+    <Rule Id="SA1207" Action="Error" />  <!-- protected 必须在 internal 之前 -->
+    <Rule Id="SA1208" Action="Error" />  <!-- System using 必须在其他 using 之前 -->
+    <Rule Id="SA1209" Action="Error" />  <!-- using 别名必须在 using 指令之后 -->
+    <Rule Id="SA1210" Action="Error" />  <!-- using 指令必须按命名空间排序 -->
+    <Rule Id="SA1211" Action="Error" />  <!-- using 别名必须按别名排序 -->
+    <Rule Id="SA1212" Action="Error" />  <!-- 属性 get/set 访问器必须相邻 -->
+    <Rule Id="SA1213" Action="Error" />  <!-- 事件 add/remove 访问器必须相邻 -->
+    <Rule Id="SA1214" Action="Error" />  <!-- 静态只读字段必须在静态非只读字段之前 -->
+    <Rule Id="SA1216" Action="Error" />  <!-- using static 指令必须在 using 别名之前 -->
+    <Rule Id="SA1217" Action="Error" />  <!-- using static 指令必须按字母排序 -->
+
+    <!-- ============================================================ -->
+    <!-- SA1300-SA1399  命名规则                                        -->
+    <!-- ============================================================ -->
+    <Rule Id="SA1300" Action="Error" />  <!-- 类型/命名空间必须以大写字母开头 -->
+    <Rule Id="SA1302" Action="Error" />  <!-- 接口必须以 I 开头 -->
+    <Rule Id="SA1303" Action="Error" />  <!-- 常量必须以大写字母开头 -->
+    <Rule Id="SA1304" Action="Error" />  <!-- 非私有只读字段必须以大写字母开头 -->
+    <Rule Id="SA1305" Action="Error" />  <!-- 字段名禁止使用匈牙利前缀 -->
+    <Rule Id="SA1306" Action="None" />  <!-- 字段名必须以小写字母开头 -->
+    <Rule Id="SA1307" Action="Error" />  <!-- 公共字段必须以大写字母开头 -->
+    <Rule Id="SA1308" Action="Error" />  <!-- 变量名禁止使用匈牙利前缀 -->
+    <Rule Id="SA1309" Action="None" />  <!-- 成员名禁止以下划线开头 -->
+    <Rule Id="SA1310" Action="None" />  <!-- 字段名禁止包含下划线 -->
+    <Rule Id="SA1311" Action="Error" />  <!-- 静态只读字段必须以大写字母开头 -->
+    <Rule Id="SA1312" Action="Error" />  <!-- 变量名必须以小写字母开头 -->
+    <Rule Id="SA1313" Action="Error" />  <!-- 参数名必须以小写字母开头 -->
+    <Rule Id="SA1314" Action="Error" />  <!-- 类型参数名必须以 T 开头 -->
+
+    <!-- ============================================================ -->
+    <!-- SA1400-SA1499  可维护性规则                                    -->
+    <!-- ============================================================ -->
+    <Rule Id="SA1400" Action="Error" />  <!-- 类必须声明访问修饰符 -->
+    <Rule Id="SA1401" Action="Error" />  <!-- 字段必须声明为 private -->
+    <Rule Id="SA1402" Action="Error" />  <!-- 一个文件只能包含一个类 -->
+    <Rule Id="SA1403" Action="Error" />  <!-- 文件只能包含一个命名空间 -->
+    <Rule Id="SA1404" Action="Error" />  <!-- 代码分析抑制必须提供理由 -->
+    <Rule Id="SA1405" Action="Error" />  <!-- Debug.Assert 必须提供消息文本 -->
+    <Rule Id="SA1406" Action="Error" />  <!-- Debug.Fail 必须提供消息文本 -->
+    <Rule Id="SA1407" Action="Error" />  <!-- 算术表达式必须用括号明确优先级 -->
+    <Rule Id="SA1408" Action="Error" />  <!-- 条件表达式必须用括号明确优先级 -->
+    <Rule Id="SA1410" Action="Error" />  <!-- 无参数的匿名方法必须省略括号 -->
+    <Rule Id="SA1411" Action="Error" />  <!-- 特性构造函数禁止不必要的括号 -->
+    <Rule Id="SA1412" Action="Error" />  <!-- 文件必须存储为 UTF-8 -->
+    <Rule Id="SA1413" Action="None" />  <!-- 多行初始化器必须使用尾随逗号 -->
+
+    <!-- ============================================================ -->
+    <!-- SA1500-SA1599  文档规则                                        -->
+    <!-- ============================================================ -->
+    <Rule Id="SA1500" Action="Error" />  <!-- 多行语句花括号必须在新行 -->
+    <Rule Id="SA1501" Action="Error" />  <!-- 语句禁止在同一行 -->
+    <Rule Id="SA1502" Action="Error" />  <!-- 元素禁止在同一行 -->
+    <Rule Id="SA1503" Action="Error" />  <!-- 花括号禁止省略 -->
+    <Rule Id="SA1504" Action="Error" />  <!-- 所有访问器必须统一单行或多行 -->
+    <Rule Id="SA1505" Action="Error" />  <!-- 左花括号后禁止空行 -->
+    <Rule Id="SA1506" Action="Error" />  <!-- 元素文档注释后禁止空行 -->
+    <Rule Id="SA1507" Action="Error" />  <!-- 代码禁止多个语句在同一行 -->
+    <Rule Id="SA1508" Action="Error" />  <!-- 右花括号后禁止空行 -->
+    <Rule Id="SA1509" Action="Error" />  <!-- 左花括号前禁止空行 -->
+    <Rule Id="SA1510" Action="Error" />  <!-- 链式语句块前禁止空行 -->
+    <Rule Id="SA1512" Action="Error" />  <!-- 单行注释后禁止空行 -->
+    <Rule Id="SA1513" Action="Error" />  <!-- 右花括号后必须有空行 -->
+    <Rule Id="SA1514" Action="Error" />  <!-- 元素文档注释前必须有空行 -->
+    <Rule Id="SA1515" Action="None" />  <!-- 单行注释前必须有空行 -->
+    <Rule Id="SA1516" Action="Error" />  <!-- 元素间必须有空行 -->
+    <Rule Id="SA1517" Action="Error" />  <!-- 文件开头禁止空行 -->
+    <Rule Id="SA1518" Action="Error" />  <!-- 文件末尾禁止多余空行 -->
+    <Rule Id="SA1519" Action="Error" />  <!-- 多行子语句花括号禁止省略 -->
+    <Rule Id="SA1520" Action="Error" />  <!-- 花括号必须一致使用 -->
+
+    <!-- ============================================================ -->
+    <!-- SA1600-SA1699  XML 文档注释规则                                  -->
+    <!-- ============================================================ -->
+    <Rule Id="SA1600" Action="Error" />  <!-- 元素必须有 XML 文档注释 -->
+    <Rule Id="SA1601" Action="Error" />  <!-- 部分类必须有 XML 文档注释 -->
+    <Rule Id="SA1602" Action="Error" />  <!-- 枚举项必须有 XML 文档注释 -->
+    <Rule Id="SA1610" Action="Error" />  <!-- 属性摘要文档必须省略受限访问的 set 访问器 -->
+    <Rule Id="SA1611" Action="Error" />  <!-- 元素参数必须有文档 -->
+    <Rule Id="SA1612" Action="Error" />  <!-- 元素参数文档必须匹配元素参数 -->
+    <Rule Id="SA1614" Action="Error" />  <!-- 元素参数文档必须有文本 -->
+    <Rule Id="SA1615" Action="Error" />  <!-- 元素返回值必须有文档 -->
+    <Rule Id="SA1616" Action="Error" />  <!-- 元素返回值文档必须有值 -->
+    <Rule Id="SA1618" Action="Error" />  <!-- 泛型类型参数必须有文档 -->
+    <Rule Id="SA1622" Action="Error" />  <!-- 泛型类型参数文档必须有文本 -->
+    <Rule Id="SA1623" Action="None" />  <!-- 属性摘要文档必须匹配访问器 -->
+    <Rule Id="SA1624" Action="Error" />  <!-- 属性摘要文档必须省略受限访问的 set 访问器 -->
+    <Rule Id="SA1625" Action="Error" />  <!-- 元素文档禁止复制粘贴 -->
+    <Rule Id="SA1626" Action="Error" />  <!-- 单行注释禁止使用文档风格斜杠 -->
+    <Rule Id="SA1627" Action="Error" />  <!-- 文档文本禁止为空 -->
+    <Rule Id="SA1629" Action="None" />  <!-- 文档文本必须以句号结尾 -->
+    <Rule Id="SA1633" Action="None" />  <!-- 文件必须有文件头注释 -->
+    <Rule Id="SA1642" Action="None" />  <!-- 构造函数摘要文档必须以标准文本开头 -->
+    <Rule Id="SA1643" Action="None" />  <!-- 析构函数摘要文档必须以标准文本开头 -->
+    <Rule Id="SA1649" Action="Error" />  <!-- 文件名必须匹配第一个类型名 -->
+    <Rule Id="SA1651" Action="Error" />  <!-- 禁止使用占位符 -->
+
+    <!-- ============================================================ -->
+    <!-- 明确禁用的规则（不适合本项目的）                                -->
+    <!-- ============================================================ -->
+    <Rule Id="SA0001" Action="None" />  <!-- XML 文档分析禁用 -->
+    <Rule Id="SA0002" Action="None" />  <!-- 禁用未知规则 -->
+    <Rule Id="SA1109" Action="None" />  <!-- 禁用：允许非跨命名空间的 using -->
+    <Rule Id="SA1126" Action="None" />  <!-- 禁用：允许 this. 前缀（SA1101 已要求） -->
+    <Rule Id="SA1138" Action="None" />  <!-- 禁用：允许字符串字面量 -->
+    <Rule Id="SA1409" Action="None" />  <!-- 禁用：允许使用 yield -->
+    <Rule Id="SA1414" Action="None" />  <!-- 禁用：允许使用 Tuple -->
+    <Rule Id="SA1511" Action="None" />  <!-- 禁用：允许单行注释后无空行 -->
+    <Rule Id="SA1636" Action="None" />  <!-- 禁用：文件头版权格式（SA1633 已强制要求文件头） -->
+    <Rule Id="SA1648" Action="None" />  <!-- 禁用：允许继承文档 -->
+
+  </Rules>
+
+  <!-- ============================================================ -->
+  <!-- CS15xx  XML 文档注释编译器诊断                                   -->
+  <!-- ============================================================ -->
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp" RuleNamespace="Microsoft.CodeAnalysis.CSharp">
+    <Rule Id="CS1570" Action="Error" />  <!-- XML 注释格式不正确 -->
+    <Rule Id="CS1571" Action="Error" />  <!-- XML 注释有重复的 param 标签 -->
+    <Rule Id="CS1572" Action="Error" />  <!-- XML 注释有不存在参数的 param 标签 -->
+    <Rule Id="CS1573" Action="Error" />  <!-- 参数没有匹配的 param 标签 -->
+    <Rule Id="CS1574" Action="Error" />  <!-- XML 注释 cref 无法解析 -->
+    <Rule Id="CS1580" Action="Error" />  <!-- XML 注释 cref 类型无效 -->
+    <Rule Id="CS1581" Action="Error" />  <!-- XML 注释 cref 返回类型无效 -->
+    <Rule Id="CS1584" Action="Error" />  <!-- XML 注释 cref 语法不正确 -->
+    <Rule Id="CS1587" Action="Error" />  <!-- XML 注释未放置在有效元素上 -->
+    <Rule Id="CS1589" Action="Error" />  <!-- XML 片段无法解析 -->
+    <Rule Id="CS1590" Action="Error" />  <!-- XML include 无效 -->
+    <Rule Id="CS1591" Action="Error" />  <!-- 缺少 XML 文档注释 -->
+    <Rule Id="CS1592" Action="Error" />  <!-- include 文件中 XML 格式不正确 -->
+    <Rule Id="CS1710" Action="Error" />  <!-- XML 注释有重复的 typeparam -->
+    <Rule Id="CS1711" Action="Error" />  <!-- XML 注释有不存在类型参数的 typeparam -->
+    <Rule Id="CS1712" Action="Error" />  <!-- 类型参数没有匹配的 typeparam 标签 -->
+  </Rules>
+</RuleSet>

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Curtain/Curtain.csproj" />
+  <Project Path="Curtain.Unity/Curtain.Unity.csproj" />
+  <Project Path="Curtain.Tests/Curtain.Tests.csproj" />
+</Solution>

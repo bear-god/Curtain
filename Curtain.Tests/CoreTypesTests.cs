@@ -1,8 +1,8 @@
-﻿using System;
-using NUnit.Framework;
-using UIFramework.Core;
+﻿namespace Curtain.Tests;
 
-namespace UIFramework.Tests;
+using System;
+using NUnit.Framework;
+using Curtain.Core;
 
 /// <summary>简单值类型与异常契约测试。</summary>
 [TestFixture]

@@ -2,9 +2,9 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
-using System;
+namespace Curtain.Core;
 
-namespace UIFramework.Core;
+using System;
 
 /// <summary>
 /// 打开页面或对话框失败时抛出的异常。

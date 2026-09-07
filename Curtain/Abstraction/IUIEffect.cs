@@ -2,7 +2,7 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
-namespace UIFramework.Core;
+namespace Curtain.Abstraction;
 
 /// <summary>
 /// UI effect marker interface.

@@ -2,7 +2,7 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
-namespace UIFramework.Core;
+namespace Curtain.Core;
 
 /// <summary>UI 层级（数值越大渲染越靠上）</summary>
 public enum UILayer

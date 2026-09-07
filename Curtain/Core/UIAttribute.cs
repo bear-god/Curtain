@@ -2,9 +2,9 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
-using System;
+namespace Curtain.Core;
 
-namespace UIFramework.Core;
+using System;
 
 /// <summary>
 /// 标记 View 子类对应的 Prefab 路径。
