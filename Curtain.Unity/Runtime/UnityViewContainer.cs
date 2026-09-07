@@ -2,11 +2,10 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
-namespace Curtain.Unity;
+namespace Curtain.Unity.Runtime;
 
 using System;
 using Curtain.Abstraction;
-using Curtain.Core;
 using UnityEngine;
 
 /// <summary>

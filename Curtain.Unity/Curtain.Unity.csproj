@@ -8,15 +8,8 @@
     <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)..\Default.ruleset</CodeAnalysisRuleSet>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>0169,0649</NoWarn>
-    <PackageId>Curtain.Unity</PackageId>
-    <Description>Curtain.Unity —— Curtain 的 Unity 桥接层，提供基于 MonoBehaviour 的 ViewBase 与 Unity 运行时接入。</Description>
-    <PackageTags>unity;ui;framework;manager</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)..\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" />

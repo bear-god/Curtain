@@ -2,13 +2,12 @@
 // Copyright (c) xpg. All rights reserved.
 // </copyright>
 
-namespace Curtain.Unity;
+namespace Curtain.Unity.Runtime;
 
 using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using Curtain.Abstraction;
-using Curtain.Core;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>

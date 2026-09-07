@@ -1,0 +1,13 @@
+{
+  "name": "com.beargod.curtain.unity",
+  "version": "0.0.1",
+  "displayName": "Curtain.Unity",
+  "description": "Curtain 的 Unity 桥接层，提供基于 MonoBehaviour 的 ViewBase 与 Unity 运行时接入。本包不包含 Curtain 核心程序集，使用者需自行提供名为 Curtain 的核心程序集（包含 Curtain.Abstraction / Curtain.Core 命名空间）。",
+  "unity": "2021.3",
+  "author": {
+    "name": "Curtain Contributors"
+  },
+  "dependencies": {
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
+  }
+}

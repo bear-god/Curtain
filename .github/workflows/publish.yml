@@ -31,10 +31,11 @@ jobs:
       - name: Test
         run: dotnet test Curtain.Tests/Curtain.Tests.csproj --configuration Release
 
+      - name: Build Curtain.Unity (compile check)
+        run: dotnet build Curtain.Unity/Curtain.Unity.csproj --configuration Release
+
       - name: Pack
-        run: |
-          dotnet pack Curtain/Curtain.csproj --configuration Release -p:Version=${{ steps.version.outputs.version }} -o ./artifacts
-          dotnet pack Curtain.Unity/Curtain.Unity.csproj --configuration Release -p:Version=${{ steps.version.outputs.version }} -o ./artifacts
+        run: dotnet pack Curtain/Curtain.csproj --configuration Release -p:Version=${{ steps.version.outputs.version }} -o ./artifacts
 
       - name: NuGet login (OIDC → temp API key)
         uses: NuGet/login@v1
