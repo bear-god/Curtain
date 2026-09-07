@@ -1,25 +1,12 @@
 # Curtain
 
-一个游戏 UI 管理框架，提供页面与对话框的统一打开、关闭和层级管理能力。核心引擎无关，当前提供 Unity 桥接（Curtain.Unity），后续将支持 Godot 等其他引擎。
+一个游戏 UI 管理框架，提供页面与对话框的统一打开、关闭和层级管理能力。核心引擎无关，后续将提供 Unity、Godot 等引擎桥接。
 
 ## 安装
-
-**核心包（NuGet）**：引擎无关的核心逻辑，供 .NET 项目使用。
 
 ```bash
 dotnet add package Curtain
 ```
-
-**Unity 桥接（Curtain.Unity）**：通过 Unity Package Manager 以 git URL 方式安装。
-
-1. 打开 `Window > Package Manager`，点击左上角 `+`，选择 `Add package from git URL...`。
-2. 输入以下地址：
-
-```
-https://github.com/bear-god/Curtain.git?path=Curtain.Unity
-```
-
-> 注意：Curtain.Unity 包**不包含**核心程序集，需要自行将核心源码加入工程，并将其程序集命名为 `Curtain`（包含 `Curtain.Abstraction` / `Curtain.Core` 命名空间），Curtain.Unity 的 asmdef 已按此名称引用。UniTask 依赖已在包的 `package.json` 中声明，安装时会自动引入。
 
 ## 特点
 
@@ -29,7 +16,7 @@ https://github.com/bear-god/Curtain.git?path=Curtain.Unity
 - **层级控制**：内置 Main、Stack、Effect、Top 四个层级，可一键关闭普通页面（保留主界面与顶层）。
 - **生命周期清晰**：View 通过 `OnInitialize` / `OnHideAsync` 处理初始化与关闭收尾，框架负责调用时机。
 - **资源自动释放**：View 通过 `AddDisposable` 注册的订阅，在销毁时自动释放。
-- **核心引擎无关**：核心逻辑不依赖任何引擎类型，便于独立测试；Unity 桥接由 Curtain.Unity 提供，后续可扩展 Godot 等引擎桥接。
+- **核心引擎无关**：核心逻辑不依赖任何引擎类型，便于独立测试；后续可扩展 Unity、Godot 等引擎桥接。
 
 ## 快速开始
 
