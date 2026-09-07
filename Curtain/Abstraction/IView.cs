@@ -4,7 +4,7 @@
 
 namespace Curtain.Abstraction;
 
-using Cysharp.Threading.Tasks;
+using System.Threading.Tasks;
 
 /// <summary>
 /// View 抽象。框架通过此接口操作视图，不依赖任何 Unity 类型。
@@ -23,6 +23,6 @@ public interface IView
     void Initialize();
 
     /// <summary>框架内部：关闭前调用并等待，View 自行决定是否播出场动画、动画后如何清理。</summary>
-    /// <returns>表示异步操作的 UniTask。</returns>
-    UniTask HideAsync();
+    /// <returns>表示异步操作的 ValueTask。</returns>
+    ValueTask HideAsync();
 }

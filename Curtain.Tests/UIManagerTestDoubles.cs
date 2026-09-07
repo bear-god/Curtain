@@ -9,7 +9,7 @@ namespace Curtain.Tests;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Cysharp.Threading.Tasks;
+using System.Threading.Tasks;
 using Curtain.Abstraction;
 using Curtain.Core;
 
@@ -72,7 +72,7 @@ public sealed class FakeUiResourceLoader : IUIResourceLoader
     }
 
     /// <inheritdoc/>
-    public UniTask<TView> InstantiateAsync<TView>(
+    public ValueTask<TView> InstantiateAsync<TView>(
         string prefabPath,
         IViewContainer parent,
         CancellationToken cancellationToken = default)
@@ -82,17 +82,17 @@ public sealed class FakeUiResourceLoader : IUIResourceLoader
 
         if (ThrowOnInstantiate != null)
         {
-            return UniTask.FromException<TView>(ThrowOnInstantiate);
+            return new ValueTask<TView>(Task.FromException<TView>(ThrowOnInstantiate));
         }
 
         if (ReturnNull)
         {
-            return UniTask.FromResult<TView>(default);
+            return new ValueTask<TView>(default(TView));
         }
 
         var instance = (TView)Activator.CreateInstance(typeof(TView));
         LastCreated = instance;
-        return UniTask.FromResult(instance);
+        return new ValueTask<TView>(instance);
     }
 
     /// <inheritdoc/>

@@ -7,7 +7,7 @@
 namespace Curtain.Tests;
 
 using System;
-using Cysharp.Threading.Tasks;
+using System.Threading.Tasks;
 using Curtain.Abstraction;
 using Curtain.Core;
 
@@ -31,7 +31,7 @@ public abstract class RecordingView : IView
     }
 
     /// <inheritdoc/>
-    public virtual async UniTask HideAsync()
+    public virtual async ValueTask HideAsync()
     {
         TestLifecycleLog.Add("View.Hide");
     }

@@ -7,7 +7,7 @@ namespace Curtain;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Cysharp.Threading.Tasks;
+using System.Threading.Tasks;
 using Curtain.Abstraction;
 using Curtain.Core;
 using Microsoft.Extensions.Logging;
@@ -52,7 +52,7 @@ public sealed class UIManager
     /// <typeparam name="TView">View 类型。</typeparam>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>页面句柄。</returns>
-    public async UniTask<UIHandle> OpenMainAsync<TView>(CancellationToken cancellationToken = default)
+    public async ValueTask<UIHandle> OpenMainAsync<TView>(CancellationToken cancellationToken = default)
         where TView : IView
     {
         // 关闭旧 Main 页面
@@ -70,7 +70,7 @@ public sealed class UIManager
     /// <param name="parameter">页面参数。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>页面句柄。</returns>
-    public async UniTask<UIHandle> OpenMainAsync<TView, TParam>(
+    public async ValueTask<UIHandle> OpenMainAsync<TView, TParam>(
         TParam parameter,
         CancellationToken cancellationToken = default)
         where TView : IView, IViewWithParameter<TParam>
@@ -89,7 +89,7 @@ public sealed class UIManager
     /// <param name="layer">UI 层级（Stack 或 Top）。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>页面句柄。</returns>
-    public async UniTask<UIHandle> OpenPageAsync<TView>(
+    public async ValueTask<UIHandle> OpenPageAsync<TView>(
         UILayer layer,
         CancellationToken cancellationToken = default)
         where TView : IView
@@ -105,7 +105,7 @@ public sealed class UIManager
     /// <param name="layer">UI 层级（Stack 或 Top）。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>页面句柄。</returns>
-    public async UniTask<UIHandle> OpenPageAsync<TView, TParam>(
+    public async ValueTask<UIHandle> OpenPageAsync<TView, TParam>(
         TParam parameter,
         UILayer layer,
         CancellationToken cancellationToken = default)
@@ -121,7 +121,7 @@ public sealed class UIManager
     /// <param name="parent">父界面句柄。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>带返回值的对话框句柄。</returns>
-    public async UniTask<UIHandle<TResult>> OpenDialogAsync<TView, TResult>(
+    public async ValueTask<UIHandle<TResult>> OpenDialogAsync<TView, TResult>(
         UIHandle parent,
         CancellationToken cancellationToken = default)
         where TView : IView, IViewWithResult
@@ -150,7 +150,7 @@ public sealed class UIManager
     /// <param name="parent">父界面句柄。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>带返回值的对话框句柄。</returns>
-    public async UniTask<UIHandle<TResult>> OpenDialogAsync<TView, TParam, TResult>(
+    public async ValueTask<UIHandle<TResult>> OpenDialogAsync<TView, TParam, TResult>(
         TParam parameter,
         UIHandle parent,
         CancellationToken cancellationToken = default)
@@ -229,7 +229,7 @@ public sealed class UIManager
         }
     }
 
-    private async UniTask<UIHandle> OpenPageInternalAsync<TView>(
+    private async ValueTask<UIHandle> OpenPageInternalAsync<TView>(
         UILayer layer,
         CancellationToken cancellationToken)
         where TView : IView
@@ -253,7 +253,7 @@ public sealed class UIManager
         return handle;
     }
 
-    private async UniTask<UIHandle> OpenPageInternalAsync<TView, TParam>(
+    private async ValueTask<UIHandle> OpenPageInternalAsync<TView, TParam>(
         TParam parameter,
         UILayer layer,
         CancellationToken cancellationToken)
@@ -280,7 +280,7 @@ public sealed class UIManager
     }
 
     /// <summary>无参数打开内部链。</summary>
-    private async UniTask<Entry> OpenInternalAsync<TView>(
+    private async ValueTask<Entry> OpenInternalAsync<TView>(
         UILayer layer,
         int parentId,
         UIHandle handle,
@@ -295,7 +295,7 @@ public sealed class UIManager
     /// 带参数打开内部链：编译期强制 <typeparamref name="TView"/> 实现 <see cref="IViewWithParameter{TParam}"/>，
     /// 在 View 初始化前注入参数。
     /// </summary>
-    private async UniTask<Entry> OpenInternalAsync<TView, TParam>(
+    private async ValueTask<Entry> OpenInternalAsync<TView, TParam>(
         TParam parameter,
         UILayer layer,
         int parentId,
@@ -316,7 +316,7 @@ public sealed class UIManager
             });
     }
 
-    private async UniTask<Entry> OpenInternalCoreAsync<TView>(
+    private async ValueTask<Entry> OpenInternalCoreAsync<TView>(
         UILayer layer,
         int parentId,
         UIHandle handle,
@@ -427,7 +427,7 @@ public sealed class UIManager
         entry.Handle.Dismiss();
 
         // 通知隐藏（等待出场动画，由 View 自行决定是否播放）
-        entry.View.HideAsync().Forget();
+        _ = HideAsyncAndLogAsync(entry.View);
 
         // 释放资源
         _loader.Release(entry.View);
@@ -454,7 +454,21 @@ public sealed class UIManager
         _logger.LogInformation("UI closed: {ViewType} (Id: {Id})", viewType.Name, id);
     }
 
-    private async UniTask CloseInternalAsync(int id)
+    /// <summary>关闭视图并异步等待其隐藏完成；异常仅记录，不阻断关闭流程。</summary>
+    /// <param name="view">要关闭的视图。</param>
+    private async ValueTask HideAsyncAndLogAsync(IView view)
+    {
+        try
+        {
+            await view.HideAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "HideAsync 执行失败: {ViewType}", view.GetType().Name);
+        }
+    }
+
+    private async ValueTask CloseInternalAsync(int id)
     {
         if (!_openById.TryGetValue(id, out var entry))
         {

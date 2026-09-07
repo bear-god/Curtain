@@ -5,7 +5,7 @@
 namespace Curtain.Abstraction;
 
 using System.Threading;
-using Cysharp.Threading.Tasks;
+using System.Threading.Tasks;
 using Curtain.Core;
 
 /// <summary>
@@ -22,7 +22,7 @@ public interface IUIResourceLoader
     /// <param name="parent">父容器。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>实例化后的视图（未激活）。</returns>
-    UniTask<TView> InstantiateAsync<TView>(
+    ValueTask<TView> InstantiateAsync<TView>(
         string prefabPath,
         IViewContainer parent,
         CancellationToken cancellationToken = default)

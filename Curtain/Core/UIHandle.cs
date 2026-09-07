@@ -5,7 +5,8 @@
 namespace Curtain.Core;
 
 using System;
-using Cysharp.Threading.Tasks;
+using System.Threading.Tasks;
+using System.Threading.Tasks.Sources;
 
 /// <summary>
 /// UI 句柄，调用 <see cref="Dispose"/> 关闭该 UI。
@@ -61,12 +62,13 @@ public class UIHandle : IDisposable
 #pragma warning disable SA1402
 /// <summary>
 /// 带返回值的对话框句柄。
-/// 通过 <see cref="GetResult"/> 等待对话框返回结果。
+/// 通过 <see cref="GetResult()"/> 等待对话框返回结果。
 /// </summary>
 /// <typeparam name="TResult">返回值类型。</typeparam>
-public sealed class UIHandle<TResult> : UIHandle
+public sealed class UIHandle<TResult> : UIHandle, IValueTaskSource<UIResult<TResult>>
 {
-    private readonly UniTaskCompletionSource<UIResult<TResult>> _tcs = new();
+    private ManualResetValueTaskSourceCore<UIResult<TResult>> _core;
+    private bool _resultSet;
 
     /// <summary>
     /// 初始化 <see cref="UIHandle{TResult}"/> 的新实例。
@@ -80,22 +82,56 @@ public sealed class UIHandle<TResult> : UIHandle
 
     /// <summary>等待对话框返回结果。</summary>
     /// <returns>包含完成状态和返回值的 <see cref="UIResult{T}"/>。</returns>
-    public UniTask<UIResult<TResult>> GetResult()
+    public ValueTask<UIResult<TResult>> GetResult()
     {
-        return _tcs.Task;
+        return new ValueTask<UIResult<TResult>>(this, _core.Version);
     }
 
     /// <summary>对话框正常完成，设置返回值（由 View 调用）。</summary>
     /// <param name="result">返回值。</param>
     public void Complete(TResult result)
     {
-        _tcs.TrySetResult(new UIResult<TResult>(true, result));
+        if (_resultSet)
+        {
+            return;
+        }
+
+        _resultSet = true;
+        _core.SetResult(new UIResult<TResult>(true, result));
+    }
+
+    /// <inheritdoc/>
+    public UIResult<TResult> GetResult(short token)
+    {
+        return _core.GetResult(token);
+    }
+
+    /// <inheritdoc/>
+    public ValueTaskSourceStatus GetStatus(short token)
+    {
+        return _core.GetStatus(token);
+    }
+
+    /// <inheritdoc/>
+    public void OnCompleted(
+        Action<object> continuation,
+        object state,
+        short token,
+        ValueTaskSourceOnCompletedFlags flags)
+    {
+        _core.OnCompleted(continuation, state, token, flags);
     }
 
     /// <summary>框架内部：级联关闭。</summary>
     internal override void Dismiss()
     {
-        _tcs.TrySetResult(new UIResult<TResult>(false, default));
+        if (_resultSet)
+        {
+            return;
+        }
+
+        _resultSet = true;
+        _core.SetResult(new UIResult<TResult>(false, default));
     }
 
     /// <summary>框架内部：对话框正常完成，设置返回值。</summary>
