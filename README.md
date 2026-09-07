@@ -2,6 +2,25 @@
 
 一个游戏 UI 管理框架，提供页面与对话框的统一打开、关闭和层级管理能力。核心引擎无关，当前提供 Unity 桥接（Curtain.Unity），后续将支持 Godot 等其他引擎。
 
+## 安装
+
+**核心包（NuGet）**：引擎无关的核心逻辑，供 .NET 项目使用。
+
+```bash
+dotnet add package Curtain
+```
+
+**Unity 桥接（Curtain.Unity）**：通过 Unity Package Manager 以 git URL 方式安装。
+
+1. 打开 `Window > Package Manager`，点击左上角 `+`，选择 `Add package from git URL...`。
+2. 输入以下地址：
+
+```
+https://github.com/bear-god/Curtain.git?path=Curtain.Unity
+```
+
+> 注意：Curtain.Unity 包**不包含**核心程序集，需要自行将核心源码加入工程，并将其程序集命名为 `Curtain`（包含 `Curtain.Abstraction` / `Curtain.Core` 命名空间），Curtain.Unity 的 asmdef 已按此名称引用。UniTask 依赖已在包的 `package.json` 中声明，安装时会自动引入。
+
 ## 特点
 
 - **页面管理**：支持主界面、普通页面、顶层页面，以及多开计数。
