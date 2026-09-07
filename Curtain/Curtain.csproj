@@ -8,13 +8,9 @@
     <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)..\Default.ruleset</CodeAnalysisRuleSet>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Curtain</PackageId>
-    <Version>0.0.1</Version>
     <Description>Curtain —— 一个引擎无关的游戏 UI 管理框架，提供页面与对话框的统一打开、关闭和层级管理能力；当前提供 Unity 桥接。</Description>
-    <Authors>Curtain Contributors</Authors>
     <PackageTags>game;ui;framework;unity;godot;manager</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/bear-god/Curtain</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

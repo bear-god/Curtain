@@ -1,0 +1,10 @@
+<Project>
+
+  <PropertyGroup>
+    <Version>0.0.1</Version>
+    <Authors>Curtain Contributors</Authors>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/bear-god/Curtain</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

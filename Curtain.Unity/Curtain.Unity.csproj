@@ -9,13 +9,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>0169,0649</NoWarn>
     <PackageId>Curtain.Unity</PackageId>
-    <Version>0.0.1</Version>
     <Description>Curtain.Unity —— Curtain 的 Unity 桥接层，提供基于 MonoBehaviour 的 ViewBase 与 Unity 运行时接入。</Description>
-    <Authors>Curtain Contributors</Authors>
     <PackageTags>unity;ui;framework;manager</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/bear-god/Curtain</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
