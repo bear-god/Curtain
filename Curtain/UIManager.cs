@@ -10,20 +10,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Curtain.Abstraction;
 using Curtain.Core;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// UI 管理器，负责 UI 的打开、关闭、层级管理。
 /// 不感知 ViewModel：打开参数通过 <see cref="IViewWithParameter{TParam}"/> 注入 View，
 /// 对话框结果句柄通过 <see cref="IViewWithResult"/> 注入 View，VM 的创建与生命周期由 View 自持。
-/// 不管理打开/关闭动画：入场动画由 View 自行启动，框架关闭前通过 <see cref="IView.HideAsync"/> 等待出场动画完成。
+/// 不管理打开/关闭动画：入场动画由 View 自行启动，框架关闭前通过 <see cref="IView.HideAsync"/> 等待出场动画完成，再释放实例。
 /// 通过 <see cref="IUIResourceLoader"/> 加载 Prefab，通过 <see cref="IUIRoot"/> 获取各层级父节点。
 /// 本类型不依赖任何 Unity 类型，Unity 桥接由 Curtain.Unity 实现。
 /// </summary>
 public sealed class UIManager
 {
-    private readonly ILogger _logger;
+    private readonly Action<string> _log;
     private readonly IUIResourceLoader _loader;
     private readonly IUIRoot _root;
 
@@ -40,12 +38,12 @@ public sealed class UIManager
     /// <summary>初始化 UIManager。</summary>
     /// <param name="loader">UI 资源加载器。</param>
     /// <param name="root">UI 根节点。</param>
-    /// <param name="logger">可选的日志记录器，默认使用 NullLogger。</param>
-    public UIManager(IUIResourceLoader loader, IUIRoot root, ILogger logger = null)
+    /// <param name="log">可选的诊断日志回调，默认不输出；核心不依赖任何日志框架，宿主可接到自己的日志实现。</param>
+    public UIManager(IUIResourceLoader loader, IUIRoot root, Action<string> log = null)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         _root = root ?? throw new ArgumentNullException(nameof(root));
-        _logger = logger ?? NullLogger.Instance;
+        _log = log;
     }
 
     /// <summary>打开 Main 层页面（自动关闭旧 Main 页面），无参数。</summary>
@@ -58,7 +56,7 @@ public sealed class UIManager
         // 关闭旧 Main 页面
         if (_currentMainId >= 0)
         {
-            await CloseInternalAsync(_currentMainId);
+            await CloseByIdAsync(_currentMainId);
         }
 
         return await OpenPageInternalAsync<TView>(UILayer.Main, cancellationToken);
@@ -78,7 +76,7 @@ public sealed class UIManager
         // 关闭旧 Main 页面
         if (_currentMainId >= 0)
         {
-            await CloseInternalAsync(_currentMainId);
+            await CloseByIdAsync(_currentMainId);
         }
 
         return await OpenPageInternalAsync<TView, TParam>(parameter, UILayer.Main, cancellationToken);
@@ -138,7 +136,7 @@ public sealed class UIManager
 
         parentEntry.ChildIds.Add(id);
 
-        _logger.LogInformation("Dialog opened: {ViewType} (Parent: {ParentId})", typeof(TView).Name, parent.Id);
+        Log($"Dialog opened: {typeof(TView).Name} (Parent: {parent.Id})");
         return dialogHandle;
     }
 
@@ -169,7 +167,7 @@ public sealed class UIManager
 
         parentEntry.ChildIds.Add(id);
 
-        _logger.LogInformation("Dialog opened: {ViewType} (Parent: {ParentId})", typeof(TView).Name, parent.Id);
+        Log($"Dialog opened: {typeof(TView).Name} (Parent: {parent.Id})");
         return dialogHandle;
     }
 
@@ -218,7 +216,7 @@ public sealed class UIManager
         where TEffect : IUIEffect
     {
         // TODO: 特效系统实现（对象池 + DOTween）
-        _logger.LogDebug("PlayEffect: {EffectType}", typeof(TEffect).Name);
+        Log($"PlayEffect: {typeof(TEffect).Name}");
     }
 
     private static void ValidatePageLayer(UILayer layer)
@@ -325,7 +323,10 @@ public sealed class UIManager
         where TView : IView
     {
         var viewType = typeof(TView);
-        _logger.LogDebug("Opening UI: {ViewType} (Layer: {Layer})", viewType.Name, layer);
+        Log($"Opening UI: {viewType.Name} (Layer: {layer})");
+
+        // 打开失败时需要释放已实例化的实例，避免隐藏节点泄漏；在 try 外声明以便 catch 使用。
+        IView createdView = null;
 
         try
         {
@@ -338,8 +339,9 @@ public sealed class UIManager
 
             // 2. 加载 Prefab 并取得 View（契约：返回未激活的视图）
             var layerRoot = _root.GetLayerRoot(layer);
-            _logger.LogDebug("Loading Prefab: {PrefabPath}", attr.PrefabPath);
+            Log($"Loading Prefab: {attr.PrefabPath}");
             var view = await _loader.InstantiateAsync<TView>(attr.PrefabPath, layerRoot, cancellationToken);
+            createdView = view;
             if (view == null)
             {
                 throw new UIOpenException($"加载 Prefab 失败: {attr.PrefabPath}");
@@ -378,11 +380,19 @@ public sealed class UIManager
 
             typeIds.Add(id);
 
-            _logger.LogInformation("UI opened: {ViewType} (Id: {Id}, Layer: {Layer})", viewType.Name, id, layer);
+            Log($"UI opened: {viewType.Name} (Id: {id}, Layer: {layer})");
             return entry;
         }
-        catch (Exception ex) when (ex is not UIOpenException)
+        catch (Exception ex)
         {
+            // P0：打开链中途失败时，已实例化的 View 不能被丢弃在层级根下，必须交还 loader 释放。
+            ReleaseIfCreated(createdView, viewType);
+
+            if (ex is UIOpenException)
+            {
+                throw;
+            }
+
             throw new UIOpenException($"打开 {viewType.Name} 失败", ex);
         }
     }
@@ -402,43 +412,67 @@ public sealed class UIManager
         return parentEntry;
     }
 
-    private void CloseById(int id)
+    /// <summary>关闭指定 id 的界面（fire-and-forget 入口）：异常写入日志，不向调用方抛出。</summary>
+    /// <param name="id">界面 id。</param>
+    private async void CloseById(int id)
+    {
+        try
+        {
+            await CloseByIdAsync(id);
+        }
+        catch (Exception ex)
+        {
+            Log($"关闭界面失败: Id={id}: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// 关闭指定 id 的界面：先同步摘除注册与父子关系，再级联关闭子对话框，
+    /// 最后等待该视图的出场动画完成后交还 loader 释放（不得在 HideAsync 完成前释放实例）。
+    /// </summary>
+    /// <param name="id">界面 id。</param>
+    private async ValueTask CloseByIdAsync(int id)
     {
         if (!_openById.TryGetValue(id, out var entry))
         {
             return;
         }
 
-        // 先级联关闭子对话框
+        // 1. 同步摘除：关闭一开始 IsOpen 即为 false，也不会再有新对话框挂到正在关闭的父界面上。
+        Detach(entry);
+
+        // 2. 级联关闭子对话框，逐个等待各自的出场动画收尾。
         foreach (var childId in entry.ChildIds.ToArray())
         {
-            CloseById(childId);
+            await CloseByIdAsync(childId);
         }
 
         entry.ChildIds.Clear();
 
-        // 从父节点移除
+        // 3. 等出场动画结束后再释放实例，避免适配层在动画途中 Release（如 Godot 的 QueueFree）。
+        await HideAndReleaseAsync(entry);
+    }
+
+    /// <summary>从注册表、父子关系与 Main 引用中摘除界面（不等待任何异步收尾）。</summary>
+    /// <param name="entry">要摘除的界面记录。</param>
+    private void Detach(Entry entry)
+    {
+        // 从父界面移除
         if (entry.ParentId >= 0 && _openById.TryGetValue(entry.ParentId, out var parentEntry))
         {
-            parentEntry.ChildIds.Remove(id);
+            parentEntry.ChildIds.Remove(entry.Id);
         }
 
-        // 如果是对话框，通知等待方被关闭
+        // 如果是对话框，通知等待方被关闭（未 Complete 的结果保持 IsCompleted=false）
         entry.Handle.Dismiss();
 
-        // 通知隐藏（等待出场动画，由 View 自行决定是否播放）
-        _ = HideAsyncAndLogAsync(entry.View);
-
-        // 释放资源
-        _loader.Release(entry.View);
-
         // 从索引移除
-        _openById.Remove(id);
+        _openById.Remove(entry.Id);
 
         var viewType = entry.View.GetType();
         if (_openByType.TryGetValue(viewType, out var typeIds))
         {
-            typeIds.Remove(id);
+            typeIds.Remove(entry.Id);
             if (typeIds.Count == 0)
             {
                 _openByType.Remove(viewType);
@@ -446,78 +480,77 @@ public sealed class UIManager
         }
 
         // 清理 Main 引用
-        if (_currentMainId == id)
+        if (_currentMainId == entry.Id)
         {
             _currentMainId = -1;
         }
-
-        _logger.LogInformation("UI closed: {ViewType} (Id: {Id})", viewType.Name, id);
     }
 
-    /// <summary>关闭视图并异步等待其隐藏完成；异常仅记录，不阻断关闭流程。</summary>
-    /// <param name="view">要关闭的视图。</param>
-    private async ValueTask HideAsyncAndLogAsync(IView view)
+    /// <summary>等待出场动画完成后释放实例；HideAsync / Release 失败只记录日志，不阻断关闭流程。</summary>
+    /// <param name="entry">要收尾的界面记录。</param>
+    private async ValueTask HideAndReleaseAsync(Entry entry)
     {
+        var view = entry.View;
+        var viewType = view.GetType();
+
         try
         {
             await view.HideAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "HideAsync 执行失败: {ViewType}", view.GetType().Name);
+            Log($"HideAsync 执行失败: {viewType.Name}: {ex}");
         }
+
+        try
+        {
+            _loader.Release(view);
+        }
+        catch (Exception ex)
+        {
+            Log($"Release 执行失败: {viewType.Name}: {ex}");
+        }
+
+        Log($"UI closed: {viewType.Name} (Id: {entry.Id})");
     }
 
-    private async ValueTask CloseInternalAsync(int id)
+    /// <summary>打开失败时释放已实例化的视图；释放本身出错只记录日志，避免覆盖原始打开异常。</summary>
+    /// <param name="view">已实例化的视图，可能为 null。</param>
+    /// <param name="viewType">视图类型（仅用于日志）。</param>
+    private void ReleaseIfCreated(IView view, Type viewType)
     {
-        if (!_openById.TryGetValue(id, out var entry))
+        if (view == null)
         {
             return;
         }
 
-        // 先级联关闭子对话框
-        foreach (var childId in entry.ChildIds.ToArray())
+        try
         {
-            await CloseInternalAsync(childId);
+            _loader.Release(view);
+        }
+        catch (Exception ex)
+        {
+            Log($"打开失败后释放视图失败: {viewType.Name}: {ex}");
+        }
+    }
+
+    /// <summary>输出诊断日志；宿主未提供回调或回调自身抛异常时静默跳过。</summary>
+    /// <param name="message">日志内容。</param>
+    private void Log(string message)
+    {
+        if (_log == null)
+        {
+            return;
         }
 
-        entry.ChildIds.Clear();
-
-        // 从父节点移除
-        if (entry.ParentId >= 0 && _openById.TryGetValue(entry.ParentId, out var parentEntry))
+        try
         {
-            parentEntry.ChildIds.Remove(id);
+            _log(message);
         }
-
-        // 如果是对话框，通知等待方被关闭
-        entry.Handle.Dismiss();
-
-        // 通知隐藏（等待出场动画，由 View 自行决定是否播放）
-        await entry.View.HideAsync();
-
-        // 释放资源
-        _loader.Release(entry.View);
-
-        // 从索引移除
-        _openById.Remove(id);
-
-        var viewType = entry.View.GetType();
-        if (_openByType.TryGetValue(viewType, out var typeIds))
+        catch (Exception)
         {
-            typeIds.Remove(id);
-            if (typeIds.Count == 0)
-            {
-                _openByType.Remove(viewType);
-            }
+            // 宿主日志实现自身的异常不能影响 UI 生命周期流程。
         }
-
-        // 清理 Main 引用
-        if (_currentMainId == id)
-        {
-            _currentMainId = -1;
-        }
-
-        _logger.LogInformation("UI closed: {ViewType} (Id: {Id})", viewType.Name, id);
     }
 
     private sealed class Entry

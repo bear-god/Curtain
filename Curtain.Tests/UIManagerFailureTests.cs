@@ -55,6 +55,8 @@ public class UIManagerFailureTests
                 .OpenPageAsync<TestPageView>(UILayer.Stack)
                 .GetAwaiter()
                 .GetResult());
+
+        Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(0), "没有实例化成功过，不应调用 Release");
     }
 
     /// <summary>资源加载抛异常时包装为 UIOpenException。</summary>
@@ -79,5 +81,19 @@ public class UIManagerFailureTests
                 .OpenPageAsync<ThrowingView>(UILayer.Stack)
                 .GetAwaiter()
                 .GetResult());
+    }
+
+    /// <summary>View 的 Initialize 抛异常时，已实例化的实例被释放且不登记为已打开（避免隐藏节点泄漏）。</summary>
+    [Test]
+    public void OpenPage_ViewInitializeThrows_ReleasesInstantiatedView()
+    {
+        Assert.Catch<UIOpenException>(() =>
+            _context.Manager
+                .OpenPageAsync<ThrowingView>(UILayer.Stack)
+                .GetAwaiter()
+                .GetResult());
+
+        Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(1), "打开失败后必须释放已实例化的 View");
+        Assert.That(_context.Manager.GetOpenCount<ThrowingView>(), Is.EqualTo(0));
     }
 }

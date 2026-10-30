@@ -99,6 +99,7 @@ public sealed class FakeUiResourceLoader : IUIResourceLoader
     public void Release(IView view)
     {
         _released.Add(view);
+        TestLifecycleLog.Add("Loader.Release");
     }
 }
 
@@ -155,9 +156,10 @@ public sealed class UiTestContext
     /// <summary>当前用例的生命周期事件序列。</summary>
     public IReadOnlyList<string> LifecycleLog => TestLifecycleLog.Events;
 
-    /// <summary>用例结束清理：重置生命周期日志。</summary>
+    /// <summary>用例结束清理：结束未完成的受控 HideAsync，并重置生命周期日志。</summary>
     public void TearDown()
     {
+        SlowHideView.SetHideCompleted();
         TestLifecycleLog.Events = new List<string>();
     }
 }

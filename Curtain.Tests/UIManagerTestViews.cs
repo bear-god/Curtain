@@ -144,6 +144,48 @@ public sealed class ThrowingView : RecordingView
 }
 
 /// <summary>
+/// HideAsync 完成时机由测试控制的 View 测试替身：用于断言「出场动画完成后才释放实例」。
+/// </summary>
+[UI("Test/SlowHide")]
+public sealed class SlowHideView : RecordingView
+{
+    private static TaskCompletionSource<bool> _hideGate;
+
+    /// <summary>开始一次受控的 HideAsync：在调用 <see cref="SetHideCompleted"/> 前不会完成。</summary>
+    public static void BeginControlledHide()
+    {
+        _hideGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    /// <summary>结束当前受控的 HideAsync。</summary>
+    public static void SetHideCompleted()
+    {
+        _hideGate?.TrySetResult(true);
+    }
+
+    /// <inheritdoc/>
+    public override async ValueTask HideAsync()
+    {
+        TestLifecycleLog.Add("View.HideAsync(start)");
+        await _hideGate.Task;
+        TestLifecycleLog.Add("View.HideAsync(end)");
+    }
+}
+
+/// <summary>
+/// HideAsync 抛异常的 View 测试替身：用于断言关闭流程仍会释放实例。
+/// </summary>
+[UI("Test/ThrowingHide")]
+public sealed class ThrowingHideView : RecordingView
+{
+    /// <inheritdoc/>
+    public override ValueTask HideAsync()
+    {
+        throw new InvalidOperationException("View.HideAsync failed");
+    }
+}
+
+/// <summary>
 /// 缺少 [UI] 标注的 View 测试替身（用于失败路径测试）。
 /// </summary>
 public sealed class NoAttributeView : RecordingView

@@ -5,6 +5,8 @@
 namespace Curtain.Tests;
 
 using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Curtain.Abstraction;
 using Curtain.Core;
@@ -151,6 +153,69 @@ public class UIManagerPageTests
         Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(1));
     }
 
+    /// <summary>句柄 Dispose 关闭页面时，必须等 HideAsync 完成后才释放实例。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
+    [Test]
+    public async Task HandleDispose_WaitsHideBeforeRelease()
+    {
+        SlowHideView.BeginControlledHide();
+        var handle = await _context.Manager
+            .OpenPageAsync<SlowHideView>(UILayer.Stack);
+
+        handle.Dispose();
+
+        Assert.That(_context.LifecycleLog, Does.Contain("View.HideAsync(start)"));
+        Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(0), "出场动画未完成前不得释放实例");
+
+        SlowHideView.SetHideCompleted();
+
+        Assert.That(
+            await WaitUntilAsync(() => _context.Loader.ReleasedCount == 1),
+            Is.True,
+            "出场动画完成后应释放实例");
+        Assert.That(
+            IndexOfLifecycleEvent("View.HideAsync(end)"),
+            Is.LessThan(IndexOfLifecycleEvent("Loader.Release")),
+            "释放必须发生在 HideAsync 完成之后");
+        Assert.That(_context.Manager.GetOpenCount<SlowHideView>(), Is.EqualTo(0));
+    }
+
+    /// <summary>CloseAll 关闭页面时同样等待 HideAsync 完成后才释放实例。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
+    [Test]
+    public async Task CloseAll_WaitsHideBeforeRelease()
+    {
+        SlowHideView.BeginControlledHide();
+        await _context.Manager
+            .OpenPageAsync<SlowHideView>(UILayer.Stack);
+
+        _context.Manager.CloseAll();
+
+        Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(0), "出场动画未完成前不得释放实例");
+
+        SlowHideView.SetHideCompleted();
+
+        Assert.That(
+            await WaitUntilAsync(() => _context.Loader.ReleasedCount == 1),
+            Is.True,
+            "出场动画完成后应释放实例");
+    }
+
+    /// <summary>HideAsync 抛异常时不阻断关闭流程，实例仍被释放。</summary>
+    [Test]
+    public void HandleDispose_HideThrows_StillReleases()
+    {
+        var handle = _context.Manager
+            .OpenPageAsync<ThrowingHideView>(UILayer.Stack)
+            .GetAwaiter()
+            .GetResult();
+
+        Assert.DoesNotThrow(handle.Dispose);
+
+        Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(1), "HideAsync 失败后仍应释放实例");
+        Assert.That(_context.Manager.GetOpenCount<ThrowingHideView>(), Is.EqualTo(0));
+    }
+
     /// <summary>同一类型页面允许多开，计数随打开/关闭增减。</summary>
     [Test]
     public void MultiOpen_SameType_CountsInstances()
@@ -187,6 +252,42 @@ public class UIManagerPageTests
     public void PlayEffect_DoesNotThrow()
     {
         Assert.DoesNotThrow(() => _context.Manager.PlayEffect(default(TestEffect)));
+    }
+
+    /// <summary>轮询等待条件成立（用于断言异步收尾完成）；超时返回 false。</summary>
+    /// <param name="condition">条件。</param>
+    /// <param name="timeoutMs">超时毫秒数。</param>
+    /// <returns>条件在超时前成立返回 true。</returns>
+    private static async Task<bool> WaitUntilAsync(Func<bool> condition, int timeoutMs = 3000)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        while (!condition())
+        {
+            if (stopwatch.ElapsedMilliseconds > timeoutMs)
+            {
+                return false;
+            }
+
+            await Task.Delay(10);
+        }
+
+        return true;
+    }
+
+    /// <summary>取生命周期事件首次出现的下标；不存在返回 -1。</summary>
+    /// <param name="evt">事件名。</param>
+    /// <returns>事件下标。</returns>
+    private int IndexOfLifecycleEvent(string evt)
+    {
+        for (var i = 0; i < _context.LifecycleLog.Count; i++)
+        {
+            if (_context.LifecycleLog[i] == evt)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>测试用特效类型。</summary>
