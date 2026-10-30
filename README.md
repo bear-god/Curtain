@@ -93,3 +93,21 @@ if (result.IsCompleted)
 - `OnInitialize()`：打开时调用一次，做初始化。
 - `OnHideAsync()`：关闭前调用，播放出场动画或清理，框架会等待完成。
 - `AddDisposable(...)`：注册订阅，View 销毁时自动释放。
+
+## 日志
+
+框架通过 `Curtain.Abstraction.ILogger` 输出分级日志，由宿主实现后注入；不传时使用 `Curtain.Core.NullLogger.Instance`，不做任何输出。
+
+```csharp
+// 第三个构造参数可选，类型为 Curtain.Abstraction.ILogger
+UIManager uiManager = new UIManager(loader, root, new MyLogger());
+```
+
+| 级别 | 触发时机 |
+|------|----------|
+| `LogDebug` | 打开界面、加载 Prefab、播放特效 |
+| `LogInfo` | 界面打开完成、界面关闭、对话框打开 |
+| `LogWarning` | 打开失败后释放视图失败 |
+| `LogError` | 打开、关闭、`HideAsync`、`Release` 失败 |
+
+`LogWarning` 与 `LogError` 带可选的异常参数。宿主实现抛异常时框架会静默跳过，不打断界面生命周期。
