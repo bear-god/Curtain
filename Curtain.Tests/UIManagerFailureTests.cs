@@ -72,6 +72,24 @@ public class UIManagerFailureTests
                 .GetResult());
     }
 
+    /// <summary>打开失败时输出 Error 级别日志，异常对象原样透传。</summary>
+    [Test]
+    public void OpenPage_LoadFailure_LogsErrorWithException()
+    {
+        var failure = new InvalidOperationException("load failed");
+        _context.Loader.ThrowOnInstantiate = failure;
+
+        Assert.Catch<UIOpenException>(() =>
+            _context.Manager
+                .OpenPageAsync<TestPageView>(UILayer.Stack)
+                .GetAwaiter()
+                .GetResult());
+
+        FakeLogRecord record = _context.Logger.LastOf(FakeLogLevel.Error);
+        Assert.That(record, Is.Not.Null, "打开失败应输出 Error 日志");
+        Assert.That(record.Exception, Is.SameAs(failure));
+    }
+
     /// <summary>View 的 Initialize 抛异常时包装为 UIOpenException。</summary>
     [Test]
     public void OpenPage_ViewInitializeThrows_WrapsAsUIOpenException()

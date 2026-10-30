@@ -216,6 +216,35 @@ public class UIManagerPageTests
         Assert.That(_context.Manager.GetOpenCount<ThrowingHideView>(), Is.EqualTo(0));
     }
 
+    /// <summary>成功打开页面时输出 Info 级别日志。</summary>
+    [Test]
+    public void OpenPage_LogsInfoOnSuccess()
+    {
+        _context.Manager
+            .OpenPageAsync<TestPageView>(UILayer.Stack)
+            .GetAwaiter()
+            .GetResult();
+
+        FakeLogRecord record = _context.Logger.LastOf(FakeLogLevel.Info);
+        Assert.That(record, Is.Not.Null, "成功打开应输出 Info 日志");
+        Assert.That(record.Message, Does.Contain("UI opened"));
+    }
+
+    /// <summary>日志实现自身抛异常时不影响打开与关闭流程。</summary>
+    [Test]
+    public void LoggerThrows_DoesNotBreakOpenAndClose()
+    {
+        _context.Logger.ThrowOnWrite = true;
+
+        var handle = _context.Manager
+            .OpenPageAsync<TestPageView>(UILayer.Stack)
+            .GetAwaiter()
+            .GetResult();
+
+        Assert.DoesNotThrow(handle.Dispose);
+        Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(1));
+    }
+
     /// <summary>同一类型页面允许多开，计数随打开/关闭增减。</summary>
     [Test]
     public void MultiOpen_SameType_CountsInstances()

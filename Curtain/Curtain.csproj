@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <!-- netstandard2.0 缺少 ValueTask 与 ManualResetValueTaskSourceCore 的 BCL 实现，需 polyfill；
-       net8.0 目标直接使用 BCL，不引任何运行时包。核心不依赖具体日志框架（见 UIManager 的 log 回调）。 -->
+       net8.0 目标直接使用 BCL，不引任何运行时包。核心不依赖具体日志框架（见 Curtain.Abstraction.ILogger）。 -->
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />

@@ -131,6 +131,104 @@ public sealed class FakeViewContainer : IViewContainer
 }
 
 /// <summary>
+/// 日志记录器测试替身：记录每次调用的级别、内容与异常，可配置为写入时抛异常。
+/// </summary>
+public sealed class FakeLogger : ILogger
+{
+    private readonly List<FakeLogRecord> _records = new();
+
+    /// <summary>写入时是否抛异常（模拟宿主日志实现自身故障）。</summary>
+    public bool ThrowOnWrite { get; set; }
+
+    /// <summary>已记录的日志条目。</summary>
+    public IReadOnlyList<FakeLogRecord> Records => _records;
+
+    /// <summary>取得指定级别的最后一条记录，没有则返回 null。</summary>
+    /// <param name="level">日志级别。</param>
+    /// <returns>最后一条记录。</returns>
+    public FakeLogRecord LastOf(FakeLogLevel level)
+    {
+        for (var i = _records.Count - 1; i >= 0; i--)
+        {
+            if (_records[i].Level == level)
+            {
+                return _records[i];
+            }
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc/>
+    public void LogDebug(string message)
+    {
+        Write(FakeLogLevel.Debug, message, null);
+    }
+
+    /// <inheritdoc/>
+    public void LogInfo(string message)
+    {
+        Write(FakeLogLevel.Info, message, null);
+    }
+
+    /// <inheritdoc/>
+    public void LogWarning(string message, Exception exception = null)
+    {
+        Write(FakeLogLevel.Warning, message, exception);
+    }
+
+    /// <inheritdoc/>
+    public void LogError(string message, Exception exception = null)
+    {
+        Write(FakeLogLevel.Error, message, exception);
+    }
+
+    private void Write(FakeLogLevel level, string message, Exception exception)
+    {
+        if (ThrowOnWrite)
+        {
+            throw new InvalidOperationException("FakeLogger 故意抛异常");
+        }
+
+        _records.Add(new FakeLogRecord
+        {
+            Level = level,
+            Message = message,
+            Exception = exception,
+        });
+    }
+}
+
+/// <summary>测试日志级别。</summary>
+public enum FakeLogLevel
+{
+    /// <summary>调试。</summary>
+    Debug,
+
+    /// <summary>信息。</summary>
+    Info,
+
+    /// <summary>警告。</summary>
+    Warning,
+
+    /// <summary>错误。</summary>
+    Error,
+}
+
+/// <summary>一条测试日志记录。</summary>
+public sealed class FakeLogRecord
+{
+    /// <summary>日志级别。</summary>
+    public FakeLogLevel Level { get; set; }
+
+    /// <summary>日志内容。</summary>
+    public string Message { get; set; }
+
+    /// <summary>附带的异常，可为 null。</summary>
+    public Exception Exception { get; set; }
+}
+
+/// <summary>
 /// UIManager 测试上下文：组装被测管理器与全部测试替身，并管理生命周期日志。
 /// </summary>
 public sealed class UiTestContext
@@ -140,12 +238,16 @@ public sealed class UiTestContext
     {
         Loader = new FakeUiResourceLoader();
         Root = new FakeUiRoot();
-        Manager = new UIManager(Loader, Root);
+        Logger = new FakeLogger();
+        Manager = new UIManager(Loader, Root, Logger);
         TestLifecycleLog.Events = new List<string>();
     }
 
     /// <summary>资源加载器替身。</summary>
     public FakeUiResourceLoader Loader { get; }
+
+    /// <summary>日志记录器替身。</summary>
+    public FakeLogger Logger { get; }
 
     /// <summary>UI 根节点替身。</summary>
     public FakeUiRoot Root { get; }

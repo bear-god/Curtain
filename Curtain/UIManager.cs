@@ -21,7 +21,7 @@ using Curtain.Core;
 /// </summary>
 public sealed class UIManager
 {
-    private readonly Action<string> _log;
+    private readonly ILogger _logger;
     private readonly IUIResourceLoader _loader;
     private readonly IUIRoot _root;
 
@@ -38,12 +38,12 @@ public sealed class UIManager
     /// <summary>初始化 UIManager。</summary>
     /// <param name="loader">UI 资源加载器。</param>
     /// <param name="root">UI 根节点。</param>
-    /// <param name="log">可选的诊断日志回调，默认不输出；核心不依赖任何日志框架，宿主可接到自己的日志实现。</param>
-    public UIManager(IUIResourceLoader loader, IUIRoot root, Action<string> log = null)
+    /// <param name="logger">可选的日志实现，默认 <see cref="NullLogger"/>（不输出）；核心不依赖任何日志框架，宿主实现 <see cref="ILogger"/> 后传入。</param>
+    public UIManager(IUIResourceLoader loader, IUIRoot root, ILogger logger = null)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         _root = root ?? throw new ArgumentNullException(nameof(root));
-        _log = log;
+        _logger = logger ?? NullLogger.Instance;
     }
 
     /// <summary>打开 Main 层页面（自动关闭旧 Main 页面），无参数。</summary>
@@ -136,7 +136,7 @@ public sealed class UIManager
 
         parentEntry.ChildIds.Add(id);
 
-        Log($"Dialog opened: {typeof(TView).Name} (Parent: {parent.Id})");
+        LogInfo($"Dialog opened: {typeof(TView).Name} (Parent: {parent.Id})");
         return dialogHandle;
     }
 
@@ -167,7 +167,7 @@ public sealed class UIManager
 
         parentEntry.ChildIds.Add(id);
 
-        Log($"Dialog opened: {typeof(TView).Name} (Parent: {parent.Id})");
+        LogInfo($"Dialog opened: {typeof(TView).Name} (Parent: {parent.Id})");
         return dialogHandle;
     }
 
@@ -216,7 +216,7 @@ public sealed class UIManager
         where TEffect : IUIEffect
     {
         // TODO: 特效系统实现（对象池 + DOTween）
-        Log($"PlayEffect: {typeof(TEffect).Name}");
+        LogDebug($"PlayEffect: {typeof(TEffect).Name}");
     }
 
     private static void ValidatePageLayer(UILayer layer)
@@ -323,7 +323,7 @@ public sealed class UIManager
         where TView : IView
     {
         var viewType = typeof(TView);
-        Log($"Opening UI: {viewType.Name} (Layer: {layer})");
+        LogDebug($"Opening UI: {viewType.Name} (Layer: {layer})");
 
         // 打开失败时需要释放已实例化的实例，避免隐藏节点泄漏；在 try 外声明以便 catch 使用。
         IView createdView = null;
@@ -339,7 +339,7 @@ public sealed class UIManager
 
             // 2. 加载 Prefab 并取得 View（契约：返回未激活的视图）
             var layerRoot = _root.GetLayerRoot(layer);
-            Log($"Loading Prefab: {attr.PrefabPath}");
+            LogDebug($"Loading Prefab: {attr.PrefabPath}");
             var view = await _loader.InstantiateAsync<TView>(attr.PrefabPath, layerRoot, cancellationToken);
             createdView = view;
             if (view == null)
@@ -380,13 +380,14 @@ public sealed class UIManager
 
             typeIds.Add(id);
 
-            Log($"UI opened: {viewType.Name} (Id: {id}, Layer: {layer})");
+            LogInfo($"UI opened: {viewType.Name} (Id: {id}, Layer: {layer})");
             return entry;
         }
         catch (Exception ex)
         {
             // P0：打开链中途失败时，已实例化的 View 不能被丢弃在层级根下，必须交还 loader 释放。
             ReleaseIfCreated(createdView, viewType);
+            LogError($"打开 {viewType.Name} 失败", ex);
 
             if (ex is UIOpenException)
             {
@@ -422,7 +423,7 @@ public sealed class UIManager
         }
         catch (Exception ex)
         {
-            Log($"关闭界面失败: Id={id}: {ex}");
+            LogError($"关闭界面失败: Id={id}", ex);
         }
     }
 
@@ -499,7 +500,7 @@ public sealed class UIManager
         }
         catch (Exception ex)
         {
-            Log($"HideAsync 执行失败: {viewType.Name}: {ex}");
+            LogError($"HideAsync 执行失败: {viewType.Name}", ex);
         }
 
         try
@@ -508,10 +509,10 @@ public sealed class UIManager
         }
         catch (Exception ex)
         {
-            Log($"Release 执行失败: {viewType.Name}: {ex}");
+            LogError($"Release 执行失败: {viewType.Name}", ex);
         }
 
-        Log($"UI closed: {viewType.Name} (Id: {entry.Id})");
+        LogInfo($"UI closed: {viewType.Name} (Id: {entry.Id})");
     }
 
     /// <summary>打开失败时释放已实例化的视图；释放本身出错只记录日志，避免覆盖原始打开异常。</summary>
@@ -530,26 +531,52 @@ public sealed class UIManager
         }
         catch (Exception ex)
         {
-            Log($"打开失败后释放视图失败: {viewType.Name}: {ex}");
+            LogWarning($"打开失败后释放视图失败: {viewType.Name}", ex);
         }
     }
 
-    /// <summary>输出诊断日志；宿主未提供回调或回调自身抛异常时静默跳过。</summary>
-    /// <param name="message">日志内容。</param>
-    private void Log(string message)
+    // 宿主日志实现自身抛异常时静默跳过，避免日志问题打断 UI 生命周期流程。
+    private void LogDebug(string message)
     {
-        if (_log == null)
-        {
-            return;
-        }
-
         try
         {
-            _log(message);
+            _logger.LogDebug(message);
         }
         catch (Exception)
         {
-            // 宿主日志实现自身的异常不能影响 UI 生命周期流程。
+        }
+    }
+
+    private void LogInfo(string message)
+    {
+        try
+        {
+            _logger.LogInfo(message);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private void LogWarning(string message, Exception exception = null)
+    {
+        try
+        {
+            _logger.LogWarning(message, exception);
+        }
+        catch (Exception)
+        {
+        }
+    }
+
+    private void LogError(string message, Exception exception = null)
+    {
+        try
+        {
+            _logger.LogError(message, exception);
+        }
+        catch (Exception)
+        {
         }
     }
 
