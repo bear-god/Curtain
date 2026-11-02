@@ -28,6 +28,7 @@ public sealed class UIManager
     private readonly ILogger _logger;
     private readonly IUIResourceLoader _loader;
     private readonly IUIRoot _root;
+    private readonly IViewPostProcessor _postProcessor;
 
     // 状态索引
     private readonly object _stateLock = new object();
@@ -51,11 +52,17 @@ public sealed class UIManager
     /// <param name="loader">UI 资源加载器。</param>
     /// <param name="root">UI 根节点。</param>
     /// <param name="logger">可选的日志实现，默认 <see cref="NullLogger"/>（不输出）；核心不依赖任何日志框架，宿主实现 <see cref="ILogger"/> 后传入。</param>
-    public UIManager(IUIResourceLoader loader, IUIRoot root, ILogger logger = null)
+    /// <param name="postProcessor">可选的视图装饰接缝，在参数/结果注入之后、Initialize 之前调用一次，供宿主注入应用侧依赖。</param>
+    public UIManager(
+        IUIResourceLoader loader,
+        IUIRoot root,
+        ILogger logger = null,
+        IViewPostProcessor postProcessor = null)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         _root = root ?? throw new ArgumentNullException(nameof(root));
         _logger = logger ?? NullLogger.Instance;
+        _postProcessor = postProcessor;
     }
 
     /// <summary>获取 Stack 层最上方界面（可能是对话框）的句柄；Stack 层为空时返回 null。</summary>
@@ -631,6 +638,9 @@ public sealed class UIManager
 
         try
         {
+            int id = NextId();
+            handle = createHandle(id);
+
             TView view = await _loader.InstantiateAsync<TView>(attribute.PrefabPath, layerRoot, cancellationToken);
             createdView = view;
             if (view == null)
@@ -640,11 +650,14 @@ public sealed class UIManager
 
             view.SetActive(false);
 
-            int id = NextId();
-            handle = createHandle(id);
             if (configure != null)
             {
                 configure(view, handle);
+            }
+
+            if (_postProcessor != null)
+            {
+                _postProcessor.Process(view, handle, layer);
             }
 
             entry = new Entry
@@ -661,6 +674,7 @@ public sealed class UIManager
             Register(entry);
 
             view.Initialize();
+            handle.MarkOpened();
 
             entry.IsActive = true;
             view.SetActive(true);

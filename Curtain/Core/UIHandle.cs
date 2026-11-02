@@ -81,11 +81,16 @@ public class UIHandle : IDisposable
         }
     }
 
-    /// <summary>框架内部：界面注册成功，绑定实例并把状态置为打开。</summary>
+    /// <summary>框架内部：界面已创建并登记，绑定实例；此时尚未对外标记为打开。</summary>
     /// <param name="view">界面实例。</param>
     internal void AttachView(IView view)
     {
         _view = view;
+    }
+
+    /// <summary>框架内部：Initialize 完成，把状态置为打开。</summary>
+    internal void MarkOpened()
+    {
         _isOpen = true;
     }
 
