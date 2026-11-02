@@ -5,12 +5,12 @@
 namespace Curtain.Tests;
 
 using System;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Curtain.Core;
 
 /// <summary>
 /// UIManager 对话框测试：结果返回、取消、级联关闭、父句柄校验、参数与句柄注入。
-/// 所有 OpenXxxAsync 在测试中同步完成，统一通过 GetAwaiter().GetResult() 同步取结果。
 /// </summary>
 [TestFixture]
 public class UIManagerDialogTests
@@ -35,99 +35,97 @@ public class UIManagerDialogTests
     [Test]
     public void OpenDialog_ReturnsTypedHandle()
     {
-        var parent = _context.Manager
+        UIHandle parent = _context.Manager
             .OpenPageAsync<TestPageView>(UILayer.Stack)
             .GetAwaiter()
             .GetResult();
-        var handle = _context.Manager
+        UIHandle<int> handle = _context.Manager
             .OpenDialogAsync<TestDialogView, int>(parent)
             .GetAwaiter()
             .GetResult();
 
         Assert.That(handle, Is.Not.Null);
-        Assert.That(_context.Manager.IsOpen<TestDialogView>(), Is.True);
+        Assert.That(handle.IsOpen, Is.True);
         Assert.That(_context.Manager.GetOpenCount<TestDialogView>(), Is.EqualTo(1));
     }
 
     /// <summary>对话框 Complete 后，GetResult 返回 IsCompleted=true 与返回值。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
     [Test]
-    public void Dialog_Complete_ReturnsValue()
+    public async Task Dialog_Complete_ReturnsValue()
     {
-        var parent = _context.Manager
-            .OpenPageAsync<TestPageView>(UILayer.Stack)
-            .GetAwaiter()
-            .GetResult();
-        var handle = _context.Manager
-            .OpenDialogAsync<TestDialogView, int>(parent)
-            .GetAwaiter()
-            .GetResult();
+        UIHandle parent = await _context.Manager.OpenPageAsync<TestPageView>(UILayer.Stack);
+        UIHandle<int> handle = await _context.Manager.OpenDialogAsync<TestDialogView, int>(parent);
 
         handle.Complete(42);
 
-        var result = handle.GetResult().GetAwaiter().GetResult();
+        UIResult<int> result = await handle.GetResult();
         Assert.That(result.IsCompleted, Is.True);
         Assert.That(result.Value, Is.EqualTo(42));
     }
 
     /// <summary>对话框未 Complete 即被关闭，GetResult 返回 IsCompleted=false。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
     [Test]
-    public void Dialog_DisposeWithoutComplete_ReturnsCancelled()
+    public async Task Dialog_CloseWithoutComplete_ReturnsCancelled()
     {
-        var parent = _context.Manager
-            .OpenPageAsync<TestPageView>(UILayer.Stack)
-            .GetAwaiter()
-            .GetResult();
-        var handle = _context.Manager
-            .OpenDialogAsync<TestDialogView, int>(parent)
-            .GetAwaiter()
-            .GetResult();
+        UIHandle parent = await _context.Manager.OpenPageAsync<TestPageView>(UILayer.Stack);
+        UIHandle<int> handle = await _context.Manager.OpenDialogAsync<TestDialogView, int>(parent);
 
-        handle.Dispose();
+        await handle.CloseAsync();
 
-        var result = handle.GetResult().GetAwaiter().GetResult();
+        UIResult<int> result = await handle.GetResult();
         Assert.That(result.IsCompleted, Is.False);
         Assert.That(result.Value, Is.EqualTo(default(int)));
     }
 
-    /// <summary>父页面关闭时，子对话框被级联关闭并返回 IsCompleted=false。</summary>
+    /// <summary>父页面关闭时，子对话框以 ParentClosed 原因级联关闭并返回 IsCompleted=false。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
     [Test]
-    public void Dialog_CascadeClosed_WhenParentPageDisposed()
+    public async Task Dialog_CascadeClosed_WhenParentPageClosed()
     {
-        var parent = _context.Manager
-            .OpenPageAsync<TestPageView>(UILayer.Stack)
-            .GetAwaiter()
-            .GetResult();
-        var handle = _context.Manager
-            .OpenDialogAsync<TestDialogView, int>(parent)
-            .GetAwaiter()
-            .GetResult();
+        UIHandle parent = await _context.Manager.OpenPageAsync<TestPageView>(UILayer.Stack);
+        UIHandle<int> handle = await _context.Manager.OpenDialogAsync<TestDialogView, int>(parent);
 
-        parent.Dispose();
+        await parent.CloseAsync();
 
-        var result = handle.GetResult().GetAwaiter().GetResult();
+        UIResult<int> result = await handle.GetResult();
         Assert.That(result.IsCompleted, Is.False, "级联关闭的对话框应返回未完成结果");
         Assert.That(_context.Manager.GetOpenCount<TestDialogView>(), Is.EqualTo(0));
         Assert.That(_context.Manager.GetOpenCount<TestPageView>(), Is.EqualTo(0));
         Assert.That(_context.Loader.ReleasedCount, Is.EqualTo(2), "页面与对话框实例都应被释放");
+
+        RecordingView dialogView = (RecordingView)_context.Loader.Created[1];
+        Assert.That(dialogView.LastCloseReason, Is.EqualTo(CloseReason.ParentClosed));
     }
 
-    /// <summary>CloseAll 时 Stack 页面连同其子对话框一起关闭。</summary>
+    /// <summary>BackToMainAsync 关闭 Stack 页面连同其子对话框。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
     [Test]
-    public void Dialog_ClosedByCloseAll()
+    public async Task Dialog_ClosedByBackToMain()
     {
-        var parent = _context.Manager
-            .OpenPageAsync<TestPageView>(UILayer.Stack)
-            .GetAwaiter()
-            .GetResult();
-        var handle = _context.Manager
-            .OpenDialogAsync<TestDialogView, int>(parent)
-            .GetAwaiter()
-            .GetResult();
+        UIHandle parent = await _context.Manager.OpenPageAsync<TestPageView>(UILayer.Stack);
+        UIHandle<int> handle = await _context.Manager.OpenDialogAsync<TestDialogView, int>(parent);
 
-        _context.Manager.CloseAll();
+        await _context.Manager.BackToMainAsync();
 
-        var result = handle.GetResult().GetAwaiter().GetResult();
+        UIResult<int> result = await handle.GetResult();
         Assert.That(result.IsCompleted, Is.False);
+        Assert.That(_context.Manager.GetOpenCount<TestPageView>(), Is.EqualTo(0));
+        Assert.That(_context.Manager.GetOpenCount<TestDialogView>(), Is.EqualTo(0));
+    }
+
+    /// <summary>CloseTopAsync 关闭对话框所在的独立页面及其级联子项。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
+    [Test]
+    public async Task CloseTop_ClosesParentPageWithDialog()
+    {
+        UIHandle parent = await _context.Manager.OpenPageAsync<TestPageView>(UILayer.Stack);
+        UIHandle<int> handle = await _context.Manager.OpenDialogAsync<TestDialogView, int>(parent);
+
+        Assert.That(await _context.Manager.CloseTopAsync(), Is.True);
+
+        Assert.That((await handle.GetResult()).IsCompleted, Is.False);
         Assert.That(_context.Manager.GetOpenCount<TestPageView>(), Is.EqualTo(0));
         Assert.That(_context.Manager.GetOpenCount<TestDialogView>(), Is.EqualTo(0));
     }
@@ -143,17 +141,15 @@ public class UIManagerDialogTests
                 .GetResult());
     }
 
-    /// <summary>父界面已关闭后，用其句柄打开对话框抛出 InvalidOperationException。</summary>
+    /// <summary>父界面已关闭后，用其句柄打开对话框抛出 UIOpenException。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
     [Test]
-    public void OpenDialog_DisposedParent_Throws()
+    public async Task OpenDialog_ClosedParent_Throws()
     {
-        var parent = _context.Manager
-            .OpenPageAsync<TestPageView>(UILayer.Stack)
-            .GetAwaiter()
-            .GetResult();
-        parent.Dispose();
+        UIHandle parent = await _context.Manager.OpenPageAsync<TestPageView>(UILayer.Stack);
+        await parent.CloseAsync();
 
-        Assert.Catch<InvalidOperationException>(() =>
+        Assert.Catch<UIOpenException>(() =>
             _context.Manager
                 .OpenDialogAsync<TestDialogView, int>(parent)
                 .GetAwaiter()
@@ -164,7 +160,7 @@ public class UIManagerDialogTests
     [Test]
     public void Dialog_ParameterInjected()
     {
-        var parent = _context.Manager
+        UIHandle parent = _context.Manager
             .OpenPageAsync<TestPageView>(UILayer.Stack)
             .GetAwaiter()
             .GetResult();
@@ -178,7 +174,7 @@ public class UIManagerDialogTests
             .GetAwaiter()
             .GetResult();
 
-        var view = (TestParamDialogView)_context.Loader.LastCreated;
+        TestParamDialogView view = (TestParamDialogView)_context.Loader.LastCreated;
         Assert.That(view, Is.Not.Null);
         Assert.That(view.ReceivedParam, Is.Not.Null);
         Assert.That(view.ReceivedParam.Value, Is.EqualTo(7));
@@ -188,16 +184,16 @@ public class UIManagerDialogTests
     [Test]
     public void Dialog_ResultHandleInjected()
     {
-        var parent = _context.Manager
+        UIHandle parent = _context.Manager
             .OpenPageAsync<TestPageView>(UILayer.Stack)
             .GetAwaiter()
             .GetResult();
-        var handle = _context.Manager
+        UIHandle<int> handle = _context.Manager
             .OpenDialogAsync<TestParamDialogView, TestParam, int>(new TestParam(), parent)
             .GetAwaiter()
             .GetResult();
 
-        var view = (TestParamDialogView)_context.Loader.LastCreated;
+        TestParamDialogView view = (TestParamDialogView)_context.Loader.LastCreated;
         Assert.That(view, Is.Not.Null);
         Assert.That(view.ResultHandle, Is.Not.Null);
         Assert.That(view.ResultHandle, Is.SameAs(handle));
@@ -207,20 +203,20 @@ public class UIManagerDialogTests
     [Test]
     public void NestedDialogs_CascadeClosed()
     {
-        var parent = _context.Manager
+        UIHandle parent = _context.Manager
             .OpenPageAsync<TestPageView>(UILayer.Stack)
             .GetAwaiter()
             .GetResult();
-        var outer = _context.Manager
+        UIHandle<int> outer = _context.Manager
             .OpenDialogAsync<TestDialogView, int>(parent)
             .GetAwaiter()
             .GetResult();
-        var inner = _context.Manager
+        UIHandle<int> inner = _context.Manager
             .OpenDialogAsync<TestDialogView, int>(outer)
             .GetAwaiter()
             .GetResult();
 
-        parent.Dispose();
+        _context.Manager.CloseAsync(parent).GetAwaiter().GetResult();
 
         Assert.That(outer.GetResult().GetAwaiter().GetResult().IsCompleted, Is.False);
         Assert.That(inner.GetResult().GetAwaiter().GetResult().IsCompleted, Is.False);
@@ -229,23 +225,33 @@ public class UIManagerDialogTests
     }
 
     /// <summary>对话框 View 通过注入的句柄 Complete 返回值（从 View 侧驱动）。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
     [Test]
-    public void Dialog_ViewDrivenComplete_ReturnsValue()
+    public async Task Dialog_ViewDrivenComplete_ReturnsValue()
     {
-        var parent = _context.Manager
-            .OpenPageAsync<TestPageView>(UILayer.Stack)
-            .GetAwaiter()
-            .GetResult();
-        var handle = _context.Manager
-            .OpenDialogAsync<TestDialogView, int>(parent)
-            .GetAwaiter()
-            .GetResult();
+        UIHandle parent = await _context.Manager.OpenPageAsync<TestPageView>(UILayer.Stack);
+        UIHandle<int> handle = await _context.Manager.OpenDialogAsync<TestDialogView, int>(parent);
 
-        var view = (TestDialogView)_context.Loader.LastCreated;
+        TestDialogView view = (TestDialogView)_context.Loader.LastCreated;
         view.Confirm(99);
 
-        var result = handle.GetResult().GetAwaiter().GetResult();
+        UIResult<int> result = await handle.GetResult();
         Assert.That(result.IsCompleted, Is.True);
         Assert.That(result.Value, Is.EqualTo(99));
+    }
+
+    /// <summary>对话框挂到 Main 句柄上，BackToMainAsync 也会关闭它。</summary>
+    /// <returns>表示异步测试的 Task。</returns>
+    [Test]
+    public async Task Dialog_ParentedToMain_ClosedByBackToMain()
+    {
+        UIHandle main = await _context.Manager.OpenMainAsync<TestMainView>();
+        UIHandle<int> handle = await _context.Manager.OpenDialogAsync<TestDialogView, int>(main);
+
+        await _context.Manager.BackToMainAsync();
+
+        Assert.That((await handle.GetResult()).IsCompleted, Is.False);
+        Assert.That(_context.Manager.GetOpenCount<TestDialogView>(), Is.EqualTo(0));
+        Assert.That(main.IsOpen, Is.True, "BackToMain 不应关闭 Main");
     }
 }

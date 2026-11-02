@@ -7,19 +7,30 @@
 namespace Curtain.Tests;
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Curtain.Abstraction;
 using Curtain.Core;
 
 /// <summary>
-/// 记录生命周期事件的 View 测试基类（纯 C# 实现 <see cref="IView"/>，无 Unity 依赖）。
+/// 记录生命周期事件的 View 测试基类（纯 C# 实现 <see cref="IView"/>，无引擎依赖）。
 /// 各具体测试 View 仅通过 [UI] 标注区分 Prefab 路径与类型。
 /// </summary>
 public abstract class RecordingView : IView
 {
     /// <inheritdoc/>
+    public virtual UIOpenMode Mode { get; set; } = UIOpenMode.Exclusive;
+
+    /// <summary>当前是否处于激活状态。</summary>
+    public bool IsActive { get; private set; }
+
+    /// <summary>最后一次关闭原因。</summary>
+    public CloseReason LastCloseReason { get; private set; }
+
+    /// <inheritdoc/>
     public void SetActive(bool active)
     {
+        IsActive = active;
         TestLifecycleLog.Add(active ? "View.SetActive(true)" : "View.SetActive(false)");
     }
 
@@ -31,9 +42,17 @@ public abstract class RecordingView : IView
     }
 
     /// <inheritdoc/>
-    public virtual async ValueTask HideAsync()
+    public virtual void BeforeClose(CloseReason reason)
     {
-        TestLifecycleLog.Add("View.Hide");
+        LastCloseReason = reason;
+        TestLifecycleLog.Add("View.BeforeClose(" + reason + ")");
+    }
+
+    /// <inheritdoc/>
+    public virtual ValueTask BeforeCloseAsync(CloseReason reason, CancellationToken cancellationToken = default)
+    {
+        TestLifecycleLog.Add("View.BeforeCloseAsync");
+        return default;
     }
 
     /// <summary>子类钩子：初始化时调用。</summary>
@@ -56,6 +75,19 @@ public sealed class TestMainView : RecordingView
 [UI("Test/Page")]
 public sealed class TestPageView : RecordingView
 {
+}
+
+/// <summary>
+/// 叠加模式的堆叠层页面测试替身。
+/// </summary>
+[UI("Test/OverlayPage")]
+public sealed class TestOverlayPageView : RecordingView
+{
+    /// <summary>初始化叠加模式。</summary>
+    public TestOverlayPageView()
+    {
+        Mode = UIOpenMode.Overlay;
+    }
 }
 
 /// <summary>
@@ -144,44 +176,55 @@ public sealed class ThrowingView : RecordingView
 }
 
 /// <summary>
-/// HideAsync 完成时机由测试控制的 View 测试替身：用于断言「出场动画完成后才释放实例」。
+/// 异步关闭完成时机由测试控制的 View 测试替身：用于断言关闭钩子完成后才释放实例。
 /// </summary>
-[UI("Test/SlowHide")]
-public sealed class SlowHideView : RecordingView
+[UI("Test/ControlledClose")]
+public sealed class ControlledCloseView : RecordingView
 {
-    private static TaskCompletionSource<bool> _hideGate;
+    private static TaskCompletionSource<bool> _closeGate;
 
-    /// <summary>开始一次受控的 HideAsync：在调用 <see cref="SetHideCompleted"/> 前不会完成。</summary>
-    public static void BeginControlledHide()
+    /// <summary>开始一次受控的 BeforeCloseAsync：在调用 <see cref="CompleteControlledClose"/> 前不会完成。</summary>
+    public static void BeginControlledClose()
     {
-        _hideGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _closeGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    /// <summary>结束当前受控的 HideAsync。</summary>
-    public static void SetHideCompleted()
+    /// <summary>结束当前受控的 BeforeCloseAsync。</summary>
+    public static void CompleteControlledClose()
     {
-        _hideGate?.TrySetResult(true);
+        _closeGate?.TrySetResult(true);
     }
 
     /// <inheritdoc/>
-    public override async ValueTask HideAsync()
+    public override async ValueTask BeforeCloseAsync(
+        CloseReason reason,
+        CancellationToken cancellationToken = default)
     {
-        TestLifecycleLog.Add("View.HideAsync(start)");
-        await _hideGate.Task;
-        TestLifecycleLog.Add("View.HideAsync(end)");
+        TestLifecycleLog.Add("View.BeforeCloseAsync(start)");
+        await _closeGate.Task;
+        TestLifecycleLog.Add("View.BeforeCloseAsync(end)");
     }
 }
 
 /// <summary>
-/// HideAsync 抛异常的 View 测试替身：用于断言关闭流程仍会释放实例。
+/// 关闭钩子抛异常的 View 测试替身：用于断言关闭流程仍会释放实例。
 /// </summary>
-[UI("Test/ThrowingHide")]
-public sealed class ThrowingHideView : RecordingView
+[UI("Test/ThrowingClose")]
+public sealed class ThrowingCloseView : RecordingView
 {
     /// <inheritdoc/>
-    public override ValueTask HideAsync()
+    public override void BeforeClose(CloseReason reason)
     {
-        throw new InvalidOperationException("View.HideAsync failed");
+        base.BeforeClose(reason);
+        throw new InvalidOperationException("View.BeforeClose failed");
+    }
+
+    /// <inheritdoc/>
+    public override ValueTask BeforeCloseAsync(
+        CloseReason reason,
+        CancellationToken cancellationToken = default)
+    {
+        throw new InvalidOperationException("View.BeforeCloseAsync failed");
     }
 }
 

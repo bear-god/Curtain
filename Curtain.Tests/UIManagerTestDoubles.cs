@@ -20,7 +20,7 @@ using Curtain.Core;
 public static class TestLifecycleLog
 {
     /// <summary>事件序列。</summary>
-    public static List<string> Events { get; set; } = new();
+    public static List<string> Events { get; set; } = new List<string>();
 
     /// <summary>追加一条事件。</summary>
     /// <param name="evt">事件名。</param>
@@ -45,8 +45,9 @@ public sealed class TestParam
 /// </summary>
 public sealed class FakeUiResourceLoader : IUIResourceLoader
 {
-    private readonly List<string> _instantiatedPaths = new();
-    private readonly List<IView> _released = new();
+    private readonly List<string> _instantiatedPaths = new List<string>();
+    private readonly List<IView> _created = new List<IView>();
+    private readonly List<IView> _released = new List<IView>();
 
     /// <summary>是否让 InstantiateAsync 返回 null（模拟加载失败）。</summary>
     public bool ReturnNull { get; set; }
@@ -59,6 +60,9 @@ public sealed class FakeUiResourceLoader : IUIResourceLoader
 
     /// <summary>已请求加载的 Prefab 路径列表。</summary>
     public IReadOnlyList<string> InstantiatedPaths => _instantiatedPaths;
+
+    /// <summary>按实例化顺序创建的全部视图。</summary>
+    public IReadOnlyList<IView> Created => _created;
 
     /// <summary>已释放的实例数量。</summary>
     public int ReleasedCount => _released.Count;
@@ -90,7 +94,8 @@ public sealed class FakeUiResourceLoader : IUIResourceLoader
             return new ValueTask<TView>(default(TView));
         }
 
-        var instance = (TView)Activator.CreateInstance(typeof(TView));
+        TView instance = (TView)Activator.CreateInstance(typeof(TView));
+        _created.Add(instance);
         LastCreated = instance;
         return new ValueTask<TView>(instance);
     }
@@ -99,21 +104,21 @@ public sealed class FakeUiResourceLoader : IUIResourceLoader
     public void Release(IView view)
     {
         _released.Add(view);
-        TestLifecycleLog.Add("Loader.Release");
+        TestLifecycleLog.Add("Loader.Release:" + view.GetType().Name);
     }
 }
 
 /// <summary>
-/// UI 根节点测试替身：为每个层级返回独立的假容器，不依赖任何 Unity 类型。
+/// UI 根节点测试替身：为每个层级返回独立的假容器，不依赖任何引擎类型。
 /// </summary>
 public sealed class FakeUiRoot : IUIRoot
 {
-    private readonly Dictionary<UILayer, FakeViewContainer> _containers = new();
+    private readonly Dictionary<UILayer, FakeViewContainer> _containers = new Dictionary<UILayer, FakeViewContainer>();
 
     /// <inheritdoc/>
     public IViewContainer GetLayerRoot(UILayer layer)
     {
-        if (!_containers.TryGetValue(layer, out var container))
+        if (!_containers.TryGetValue(layer, out FakeViewContainer container))
         {
             container = new FakeViewContainer();
             _containers[layer] = container;
@@ -135,7 +140,7 @@ public sealed class FakeViewContainer : IViewContainer
 /// </summary>
 public sealed class FakeLogger : ILogger
 {
-    private readonly List<FakeLogRecord> _records = new();
+    private readonly List<FakeLogRecord> _records = new List<FakeLogRecord>();
 
     /// <summary>写入时是否抛异常（模拟宿主日志实现自身故障）。</summary>
     public bool ThrowOnWrite { get; set; }
@@ -148,7 +153,7 @@ public sealed class FakeLogger : ILogger
     /// <returns>最后一条记录。</returns>
     public FakeLogRecord LastOf(FakeLogLevel level)
     {
-        for (var i = _records.Count - 1; i >= 0; i--)
+        for (int i = _records.Count - 1; i >= 0; i--)
         {
             if (_records[i].Level == level)
             {
@@ -258,10 +263,10 @@ public sealed class UiTestContext
     /// <summary>当前用例的生命周期事件序列。</summary>
     public IReadOnlyList<string> LifecycleLog => TestLifecycleLog.Events;
 
-    /// <summary>用例结束清理：结束未完成的受控 HideAsync，并重置生命周期日志。</summary>
+    /// <summary>用例结束清理：结束未完成的受控关闭，并重置生命周期日志。</summary>
     public void TearDown()
     {
-        SlowHideView.SetHideCompleted();
+        ControlledCloseView.CompleteControlledClose();
         TestLifecycleLog.Events = new List<string>();
     }
 }

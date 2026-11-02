@@ -1,88 +1,69 @@
-﻿namespace Curtain.Tests;
+﻿// <copyright file="UIHandleTests.cs" company="xpg">
+// Copyright (c) xpg. All rights reserved.
+// </copyright>
 
+namespace Curtain.Tests;
+
+using System;
 using NUnit.Framework;
+using Curtain.Abstraction;
 using Curtain.Core;
 
 /// <summary>
-/// <see cref="UIHandle{TResult}"/> 对话框结果语义测试：Complete / Dismiss 的幂等性与句柄有效性。
-/// 通过 InternalsVisibleTo 直接构造句柄并调用框架内部 Dismiss。
+/// <see cref="UIHandle{TResult}"/> 对话框结果语义测试：Complete 的幂等性，以及句柄状态访问契约。
+/// 通过 InternalsVisibleTo 直接构造句柄。
 /// </summary>
 [TestFixture]
 public class UIHandleTests
 {
+    private UiTestContext _context;
+
+    /// <summary>每个测试执行前的初始化。</summary>
+    [SetUp]
+    public void SetUp()
+    {
+        _context = new UiTestContext();
+    }
+
+    /// <summary>每个测试执行后的清理。</summary>
+    [TearDown]
+    public void TearDown()
+    {
+        _context.TearDown();
+    }
+
     /// <summary>Complete 设置已完成结果。</summary>
     [Test]
     public void Complete_SetsCompletedResult()
     {
-        var handle = new UIHandle<int>(
-            1,
-            () =>
-            {
-            });
+        UIHandle<int> handle = new UIHandle<int>(1, _context.Manager);
         handle.Complete(42);
 
-        var result = handle.GetResult().GetAwaiter().GetResult();
+        UIResult<int> result = handle.GetResult().GetAwaiter().GetResult();
         Assert.That(result.IsCompleted, Is.True);
         Assert.That(result.Value, Is.EqualTo(42));
-    }
-
-    /// <summary>Dismiss 设置未完成（取消）结果。</summary>
-    [Test]
-    public void Dismiss_SetsCancelledResult()
-    {
-        var handle = new UIHandle<int>(
-            1,
-            () =>
-            {
-            });
-        handle.Dismiss();
-
-        var result = handle.GetResult().GetAwaiter().GetResult();
-        Assert.That(result.IsCompleted, Is.False);
     }
 
     /// <summary>多次 Complete 只有第一次生效。</summary>
     [Test]
     public void Complete_Twice_FirstWins()
     {
-        var handle = new UIHandle<int>(
-            1,
-            () =>
-            {
-            });
+        UIHandle<int> handle = new UIHandle<int>(1, _context.Manager);
         handle.Complete(1);
         handle.Complete(2);
 
         Assert.That(handle.GetResult().GetAwaiter().GetResult().Value, Is.EqualTo(1));
     }
 
-    /// <summary>先 Dismiss 再 Complete，结果保持取消态。</summary>
+    /// <summary>未打开的句柄访问 View 抛出 InvalidOperationException。</summary>
     [Test]
-    public void Dismiss_ThenComplete_KeepsCancelled()
+    public void View_ThrowsWhenNotOpen()
     {
-        var handle = new UIHandle<int>(
-            1,
-            () =>
-            {
-            });
-        handle.Dismiss();
-        handle.Complete(42);
+        UIHandle handle = new UIHandle(1, _context.Manager);
 
-        Assert.That(handle.GetResult().GetAwaiter().GetResult().IsCompleted, Is.False);
-    }
-
-    /// <summary>Dispose 幂等，关闭回调只触发一次。</summary>
-    [Test]
-    public void Dispose_IsIdempotent_AndInvokesOnCloseOnce()
-    {
-        var closeCount = 0;
-        var handle = new UIHandle<int>(1, () => closeCount++);
-
-        Assert.That(handle.IsValid, Is.True);
-        handle.Dispose();
-        handle.Dispose();
-
-        Assert.That(handle.IsValid, Is.False);
-        Assert.That(closeCount, Is.EqualTo(1));
+        IView view = null;
+        Assert.Throws<InvalidOperationException>(() => view = handle.View);
+        Assert.That(handle.IsOpen, Is.False);
+        Assert.That(view, Is.Null);
     }
 }
